@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>철근가공물량 산출 프로그램</title>
+<style>
+  :root{
+    --bg:#f4f5f7; --panel:#ffffff; --border:#d8dbe0; --text:#1f2430; --muted:#6b7280;
+    --accent:#2563eb; --accent-light:#dbeafe; --danger:#dc2626; --header:#1f2937;
+    --row-alt:#fafbfc; --shadow:0 2px 8px rgba(0,0,0,.08);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:"Malgun Gothic","맑은 고딕",sans-serif;background:var(--bg);color:var(--text);font-size:13px;}
+  #app{display:flex;flex-direction:column;height:100vh;}
+  /* top menu bar */
+  #menubar{background:var(--header);color:#fff;display:flex;align-items:center;padding:0 8px;height:34px;flex-shrink:0;gap:2px;}
+  #menubar .mbtn{padding:6px 12px;cursor:pointer;border-radius:4px;font-size:12.5px;user-select:none;}
+  #menubar .mbtn:hover{background:rgba(255,255,255,.15);}
+  #menubar .title{margin-left:auto;font-size:12px;color:#cbd5e1;padding-right:8px;}
+  /* toolbar */
+  #toolbar{background:#eef0f3;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px;padding:6px 10px;flex-shrink:0;}
+  #toolbar button{background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:6px 10px;cursor:pointer;font-size:12.5px;color:var(--text);}
+  #toolbar button:hover{background:var(--accent-light);border-color:var(--accent);}
+  #toolbar .sep{width:1px;height:20px;background:var(--border);margin:0 4px;}
+  #toolbar .proj-name{font-weight:600;margin-left:6px;color:var(--muted);}
+  /* main layout */
+  #main{flex:1;display:flex;min-height:0;}
+  #left{width:300px;flex-shrink:0;background:var(--panel);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+  #right{flex:1;display:flex;flex-direction:column;min-width:0;}
+  .panel-title{font-weight:600;font-size:12.5px;padding:8px 10px;background:#f1f3f5;border-bottom:1px solid var(--border);color:#374151;}
+  #tree-wrap{flex:1 1 40%;overflow:auto;border-bottom:1px solid var(--border);padding:4px;}
+  .tree-zone{margin-bottom:2px;}
+  .tree-zone-name{display:flex;align-items:center;gap:4px;padding:5px 6px;cursor:pointer;border-radius:4px;font-weight:600;}
+  .tree-zone-name:hover{background:#f1f3f5;}
+  .tree-floor{padding:5px 6px 5px 26px;cursor:pointer;border-radius:4px;color:#374151;}
+  .tree-floor:hover{background:#f1f3f5;}
+  .tree-floor.active{background:var(--accent);color:#fff;}
+  #member-wrap{padding:10px;border-bottom:1px solid var(--border);flex-shrink:0;}
+  #member-wrap label{display:block;font-size:12px;color:var(--muted);margin-bottom:4px;}
+  #member-select{width:100%;padding:6px;border:1px solid var(--border);border-radius:4px;font-size:13px;}
+  #voucher-wrap{flex:1 1 40%;display:flex;flex-direction:column;overflow:hidden;padding:10px;min-height:120px;}
+  #voucher-list{flex:1;overflow:auto;border:1px solid var(--border);border-radius:4px;background:#fff;margin-bottom:8px;}
+  .voucher-item{padding:7px 10px;cursor:pointer;border-bottom:1px solid #eef0f3;}
+  .voucher-item:hover{background:#f1f3f5;}
+  .voucher-item.active{background:var(--accent);color:#fff;}
+  #voucher-btns{display:flex;gap:6px;}
+  #voucher-btns button{flex:1;padding:6px;border:1px solid var(--border);border-radius:4px;background:#fff;cursor:pointer;}
+  #voucher-btns button:hover{background:var(--accent-light);}
+  /* table area */
+  #table-toolbar{display:flex;align-items:center;gap:6px;padding:8px 10px;background:#f1f3f5;border-bottom:1px solid var(--border);}
+  #table-toolbar button{background:#fff;border:1px solid var(--border);border-radius:4px;padding:6px 12px;cursor:pointer;font-size:12.5px;}
+  #table-toolbar button:hover{background:var(--accent-light);border-color:var(--accent);}
+  #table-toolbar .curvoucher{margin-left:auto;font-size:12px;color:var(--muted);}
+  #table-scroll{flex:1;overflow:auto;background:var(--panel);}
+  table.rebar-table{border-collapse:collapse;width:100%;font-size:12.5px;}
+  table.rebar-table th{background:#eef0f3;border:1px solid var(--border);padding:6px 4px;position:sticky;top:0;white-space:nowrap;font-weight:600;color:#374151;z-index:1;}
+  table.rebar-table td{border:1px solid var(--border);padding:2px 4px;text-align:center;white-space:nowrap;}
+  table.rebar-table tr:nth-child(even){background:var(--row-alt);}
+  table.rebar-table tr.selected{background:var(--accent-light);}
+  table.rebar-table input, table.rebar-table select{width:100%;border:1px solid transparent;background:transparent;text-align:center;font-size:12.5px;padding:4px 2px;border-radius:3px;}
+  table.rebar-table input:focus, table.rebar-table select:focus{border-color:var(--accent);background:#fff;outline:none;}
+  table.rebar-table .shape-cell{cursor:pointer;color:var(--accent);text-decoration:underline;min-width:120px;}
+  table.rebar-table .shape-cell svg{vertical-align:middle;}
+  #statusbar{display:flex;align-items:center;padding:8px 12px;border-top:1px solid var(--border);background:#f1f3f5;font-size:13px;flex-shrink:0;}
+  #statusbar .total{margin-left:auto;font-weight:700;color:var(--accent);font-size:15px;}
+  /* modal */
+  .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:100;}
+  .modal-overlay.hidden{display:none;}
+  .modal{background:#fff;border-radius:8px;box-shadow:0 10px 40px rgba(0,0,0,.3);padding:20px;max-height:90vh;overflow:auto;}
+  .modal h2{margin:0 0 14px;font-size:16px;border-bottom:1px solid var(--border);padding-bottom:10px;}
+  .modal .field{margin-bottom:12px;}
+  .modal .field label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:4px;}
+  .modal .field input, .modal .field textarea{width:100%;padding:7px 8px;border:1px solid var(--border);border-radius:4px;font-size:13px;font-family:inherit;}
+  .modal .row3{display:flex;gap:10px;}
+  .modal .row3 .field{flex:1;}
+  .modal .btns{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
+  .modal .btns button{padding:8px 18px;border-radius:5px;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:13px;}
+  .modal .btns button.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+  .modal .btns button:hover{filter:brightness(0.96);}
+  #newproj-modal .modal, #voucher-modal .modal{width:420px;}
+  #shape-modal .modal{width:920px;}
+  #shape-body{display:flex;gap:16px;}
+  #shape-gallery{width:520px;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;max-height:420px;overflow:auto;padding:4px;}
+  .shape-thumb{border:2px solid var(--border);border-radius:6px;padding:6px;cursor:pointer;text-align:center;background:#fafbfc;}
+  .shape-thumb:hover{border-color:var(--accent);}
+  .shape-thumb.selected{border-color:var(--accent);background:var(--accent-light);}
+  .shape-thumb .tname{font-size:11px;color:#374151;margin-top:4px;}
+  .shape-thumb svg{width:100%;height:60px;}
+  #shape-right{width:360px;display:flex;flex-direction:column;gap:10px;}
+  #shape-preview-box{border:1px solid var(--border);border-radius:6px;background:#fafbfc;height:180px;display:flex;align-items:center;justify-content:center;}
+  #shape-dims{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  #shape-dims .field label{font-size:12px;color:var(--muted);}
+  #shape-dims .field input{width:100%;padding:6px;border:1px solid var(--border);border-radius:4px;}
+  #shape-dims .field.disabled input{background:#f1f3f5;color:#aaa;}
+  #shape-total{font-size:14px;font-weight:700;color:var(--accent);text-align:right;}
+  #anchor-modal .modal{width:640px;}
+  table.anchor-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  table.anchor-table th,table.anchor-table td{border:1px solid var(--border);padding:5px;text-align:center;}
+  table.anchor-table th{background:#eef0f3;}
+  table.anchor-table input{width:80px;padding:4px;text-align:center;border:1px solid var(--border);border-radius:3px;}
+  #print-modal .modal{width:900px;}
+  #print-area{background:#fff;padding:24px;}
+  #print-area h1{font-size:20px;text-align:center;margin:0 0 16px;}
+  table.print-head{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:13px;}
+  table.print-head td{border:1px solid #333;padding:6px 10px;}
+  table.print-head td.k{background:#f1f3f5;font-weight:600;width:110px;}
+  table.print-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+  table.print-table th,table.print-table td{border:1px solid #333;padding:5px;text-align:center;}
+  table.print-table th{background:#eef0f3;}
+  #print-total{text-align:right;font-weight:700;margin-top:10px;font-size:14px;}
+  @media print{
+    body *{visibility:hidden;}
+    #print-area, #print-area *{visibility:visible;}
+    #print-area{position:absolute;top:0;left:0;width:100%;}
+    #print-modal .btns{display:none;}
+  }
+  .icon-btn{cursor:pointer;color:var(--danger);font-weight:700;}
+  ::-webkit-scrollbar{width:10px;height:10px;}
+  ::-webkit-scrollbar-thumb{background:#c3c8d0;border-radius:5px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="menubar">
+    <div class="mbtn" id="mb-new">파일(F)</div>
+    <div class="title" id="filepath-label">저장된 파일 없음</div>
+  </div>
+  <div id="toolbar">
+    <button id="btn-new">📄 새 프로젝트</button>
+    <button id="btn-open">📂 열기</button>
+    <button id="btn-save">💾 저장</button>
+    <div class="sep"></div>
+    <button id="btn-addzone">+ 공구</button>
+    <button id="btn-delzone">− 공구</button>
+    <div class="sep"></div>
+    <button id="btn-anchor">📐 정착길이 설정</button>
+    <button id="btn-print">🖨 인쇄 미리보기</button>
+    <span class="proj-name" id="proj-name-label">(새 프로젝트)</span>
+  </div>
+  <div id="main">
+    <div id="left">
+      <div class="panel-title">프로젝트 구조</div>
+      <div id="tree-wrap"></div>
+      <div id="member-wrap">
+        <label>부재 선택</label>
+        <select id="member-select"></select>
+      </div>
+      <div class="panel-title">전표 목록</div>
+      <div id="voucher-wrap">
+        <div id="voucher-list"></div>
+        <div id="voucher-btns">
+          <button id="btn-voucher-add">추가</button>
+          <button id="btn-voucher-del">삭제</button>
+        </div>
+      </div>
+    </div>
+    <div id="right">
+      <div id="table-toolbar">
+        <button id="btn-row-add">철근 추가</button>
+        <button id="btn-row-del">철근 삭제</button>
+        <button id="btn-row-up">▲ 위로</button>
+        <button id="btn-row-down">▼ 아래로</button>
+        <span class="curvoucher" id="curvoucher-label"></span>
+      </div>
+      <div id="table-scroll">
+        <table class="rebar-table" id="rebar-table">
+          <thead>
+            <tr>
+              <th style="width:32px;">NO</th>
+              <th style="width:80px;">명칭</th>
+              <th style="width:70px;">지름</th>
+              <th style="width:80px;">강종</th>
+              <th style="width:70px;">용도</th>
+              <th style="width:150px;">형상</th>
+              <th style="width:80px;">총길이</th>
+              <th style="width:55px;">개수</th>
+              <th style="width:55px;">개소</th>
+              <th style="width:60px;">합계</th>
+              <th style="width:70px;">정착</th>
+              <th style="width:55px;">본수</th>
+              <th style="width:80px;">실중량</th>
+            </tr>
+          </thead>
+          <tbody id="rebar-tbody"></tbody>
+        </table>
+      </div>
+      <div id="statusbar">
+        <span id="voucher-status">전표: -</span>
+        <span class="total" id="total-weight">총 중량: 0.00 kg</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 새 프로젝트 모달 -->
+<div class="modal-overlay hidden" id="newproj-modal">
+  <div class="modal">
+    <h2>새 프로젝트</h2>
+    <div class="field"><label>회사명</label><input id="np-company"></div>
+    <div class="field"><label>현장명</label><input id="np-site" value="새 프로젝트"></div>
+    <div class="field"><label>개시일</label><input id="np-date" type="date"></div>
+    <div class="field"><label>메모</label><textarea id="np-memo" rows="2"></textarea></div>
+    <div class="row3">
+      <div class="field"><label>지하 층수</label><input id="np-basement" type="number" min="0" value="0"></div>
+      <div class="field"><label>지상 층수</label><input id="np-above" type="number" min="0" value="1"></div>
+      <div class="field"><label>옥탑 층수</label><input id="np-roof" type="number" min="0" value="0"></div>
+    </div>
+    <div class="btns">
+      <button id="np-cancel">취소</button>
+      <button class="primary" id="np-save">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 전표 이름 모달 -->
+<div class="modal-overlay hidden" id="voucher-modal">
+  <div class="modal">
+    <h2>전표 추가</h2>
+    <div class="field"><label>전표 이름을 입력하세요</label><input id="vm-name"></div>
+    <div class="btns">
+      <button id="vm-cancel">취소</button>
+      <button class="primary" id="vm-ok">확인</button>
+    </div>
+  </div>
+</div>
+
+<!-- 철근 형상 모달 -->
+<div class="modal-overlay hidden" id="shape-modal">
+  <div class="modal">
+    <h2>철근 형상 대화상자</h2>
+    <div id="shape-body">
+      <div id="shape-gallery"></div>
+      <div id="shape-right">
+        <div id="shape-preview-box"></div>
+        <div id="shape-dims"></div>
+        <div id="shape-total">총 길이: 0 mm</div>
+      </div>
+    </div>
+    <div class="btns">
+      <button id="sm-cancel">취소</button>
+      <button class="primary" id="sm-ok">입력</button>
+    </div>
+  </div>
+</div>
+
+<!-- 정착길이 설정 모달 -->
+<div class="modal-overlay hidden" id="anchor-modal">
+  <div class="modal">
+    <h2>정착길이 설정 (mm)</h2>
+    <p style="color:var(--muted);font-size:12px;margin-top:-8px;">※ 설계기준(구조계산서)에 맞는 값을 직접 입력하세요. 기본값은 제공되지 않습니다.</p>
+    <div style="max-height:400px;overflow:auto;">
+      <table class="anchor-table" id="anchor-table"></table>
+    </div>
+    <div class="btns">
+      <button id="am-close">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 인쇄 미리보기 모달 -->
+<div class="modal-overlay hidden" id="print-modal">
+  <div class="modal">
+    <div class="btns" style="margin-top:0;margin-bottom:10px;">
+      <button id="pm-print">인쇄</button>
+      <button id="pm-close">닫기</button>
+    </div>
+    <div id="print-area"></div>
+  </div>
+</div>
+
+<input type="file" id="file-input" accept=".json" style="display:none;">
+
+<script>
+/* ===================== 데이터 / 상수 ===================== */
+const DIAMETERS = ['D6','D8','D10','D13','D16','D19','D22','D25','D29','D32','D35','D38'];
+const UNIT_WEIGHT = { D6:0.249, D8:0.395, D10:0.560, D13:0.995, D16:1.56, D19:2.25, D22:3.04, D25:3.98, D29:5.04, D32:6.23, D35:7.51, D38:8.95 };
+const GRADES = ['SD300','SD400','SD500','SD600','SD700','SD800'];
+const MEMBER_TYPES = ['기초','기둥','벽체','보','슬래브','계단','기타'];
+const USAGES = ['None','주근','띠철근','배력근','온도철근','기타'];
+
+const SHAPE_PRESETS = [
+  { id:'T-00', name:'직선', fields:['A'],
+    segments:[{key:'A',angle:0}], sample:{A:400} },
+  { id:'T-01', name:'ㄱ자(단순절곡)', fields:['A','B'],
+    segments:[{key:'A',angle:0},{key:'B',angle:90}], sample:{A:300,B:150} },
+  { id:'T-02', name:'ㄷ자(3단/스터럽다리)', fields:['A','B','C'],
+    segments:[{key:'A',angle:-90},{key:'B',angle:0},{key:'C',angle:90}], sample:{A:80,B:200,C:80} },
+  { id:'T-03', name:'사각후프(닫힌형)', fields:['A','B','C','D'],
+    segments:[{key:'A',angle:0},{key:'B',angle:-90},{key:'C',angle:180},{key:'D',angle:90}], sample:{A:200,B:150,C:200,D:150} },
+  { id:'T-04', name:'Z자형', fields:['A','B','C'],
+    segments:[{key:'A',angle:0},{key:'B',angle:-45},{key:'C',angle:0}], sample:{A:150,B:120,C:150} },
+  { id:'T-05', name:'계단형(5단)', fields:['A','B','C','D','E'],
+    segments:[{key:'A',angle:0},{key:'B',angle:-90},{key:'C',angle:0},{key:'D',angle:-90},{key:'E',angle:0}], sample:{A:100,B:80,C:100,D:80,E:100} },
+  { id:'T-06', name:'양단후크형(5단)', fields:['A','B','C','D','E'],
+    segments:[{key:'A',angle:90},{key:'B',angle:0},{key:'C',angle:-90},{key:'D',angle:0},{key:'E',angle:90}], sample:{A:60,B:200,C:80,D:200,E:60} },
+  { id:'T-07', name:'ㄷ자(4단, 뒤집힘)', fields:['A','B','C','D'],
+    segments:[{key:'A',angle:90},{key:'B',angle:0},{key:'C',angle:0},{key:'D',angle:-90}], sample:{A:80,B:150,C:150,D:80} },
+  { id:'T-08', name:'사선(경사직선)', fields:['A','angle'], isDiagonal:true,
+    segments:[{key:'A',angleField:'angle'}], sample:{A:300,angle:45} },
+  { id:'T-09', name:'삼각절곡', fields:['A','B','C'],
+    segments:[{key:'A',angle:0},{key:'B',angle:120},{key:'C',angle:-120}], sample:{A:200,B:150,C:150} },
+  { id:'T-10', name:'원형후프(R=)', fields:['R'], type:'circle', sample:{R:80} },
+  { id:'T-11', name:'반원형(R=)', fields:['R'], type:'semicircle', sample:{R:80} },
+];
+
+let state = null;
+let ui = { activeZoneId:null, activeFloor:null, activeMember:null, activeVoucherId:null, selectedRowId:null, currentFilePath:null, shapeTargetRowId:null, shapeSelectedPreset:null, shapeDims:{} };
+
+function uid(){ return Math.random().toString(36).slice(2,10); }
+
+function freshFloors(){
+  const f = [];
+  f.push('기초');
+  for(let i=state.floorCounts.basement;i>=1;i--) f.push('B'+i);
+  for(let i=1;i<=state.floorCounts.above;i++) f.push(i+'F');
+  for(let i=1;i<=state.floorCounts.roof;i++) f.push('PH'+i);
+  return f;
+}
+
+function newProjectState(meta, counts){
+  return {
+    meta: meta,
+    floorCounts: counts,
+    zones: [ { id: uid(), name: '1공구' } ],
+    data: {},
+    anchor: {}
+  };
+}
+
+function ensureDataPath(zoneId, floor, member){
+  state.data[zoneId] = state.data[zoneId] || {};
+  state.data[zoneId][floor] = state.data[zoneId][floor] || {};
+  state.data[zoneId][floor][member] = state.data[zoneId][floor][member] || [];
+  return state.data[zoneId][floor][member];
+}
+
+function getVouchers(){
+  if(!ui.activeZoneId || !ui.activeFloor || !ui.activeMember) return [];
+  return ensureDataPath(ui.activeZoneId, ui.activeFloor, ui.activeMember);
+}
+
+function getActiveVoucher(){
+  const list = getVouchers();
+  return list.find(v=>v.id===ui.activeVoucherId) || null;
+}
+
+/* ===================== 저장 / 불러오기 ===================== */
+function autosave(){
+  try{ localStorage.setItem('rebar_calc_state', JSON.stringify(state)); }catch(e){}
+}
+function loadAutosave(){
+  try{
+    const raw = localStorage.getItem('rebar_calc_state');
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  return null;
+}
+
+function saveToFile(){
+  const blob = new Blob([JSON.stringify(state,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const fname = (state.meta.site || '프로젝트') + '.rebar.json';
+  a.href = url; a.download = fname;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  document.getElementById('filepath-label').textContent = fname + ' (저장됨)';
+}
+
+function openFromFile(file){
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try{
+      const loaded = JSON.parse(e.target.result);
+      state = loaded;
+      ui = { activeZoneId:null, activeFloor:null, activeMember:null, activeVoucherId:null, selectedRowId:null, currentFilePath:file.name };
+      document.getElementById('filepath-label').textContent = file.name;
+      renderAll();
+      autosave();
+    }catch(err){
+      alert('파일을 열 수 없습니다: ' + err.message);
+    }
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+/* ===================== 렌더링 ===================== */
+function renderAll(){
+  document.getElementById('proj-name-label').textContent = state.meta.site ? ('(' + state.meta.site + ')') : '(새 프로젝트)';
+  renderTree();
+  renderMemberSelect();
+  renderVoucherList();
+  renderTable();
+}
+
+function renderTree(){
+  const wrap = document.getElementById('tree-wrap');
+  wrap.innerHTML = '';
+  const floors = freshFloors();
+  state.zones.forEach(zone=>{
+    const zdiv = document.createElement('div');
+    zdiv.className = 'tree-zone';
+    const zname = document.createElement('div');
+    zname.className = 'tree-zone-name';
+    zname.textContent = '▾ ' + zone.name;
+    zdiv.appendChild(zname);
+    floors.forEach(fl=>{
+      const fdiv = document.createElement('div');
+      fdiv.className = 'tree-floor' + (ui.activeZoneId===zone.id && ui.activeFloor===fl ? ' active':'');
+      fdiv.textContent = fl;
+      fdiv.setAttribute('role','button');
+      fdiv.setAttribute('tabindex','0');
+      fdiv.onclick = ()=>{
+        ui.activeZoneId = zone.id; ui.activeFloor = fl;
+        const ms = document.getElementById('member-select');
+        ui.activeMember = ms.value || MEMBER_TYPES[0];
+        ui.activeVoucherId = null; ui.selectedRowId = null;
+        renderTree(); renderVoucherList(); renderTable();
+      };
+      zdiv.appendChild(fdiv);
+    });
+    wrap.appendChild(zdiv);
+  });
+}
+
+function renderMemberSelect(){
+  const sel = document.getElementById('member-select');
+  sel.innerHTML = MEMBER_TYPES.map(m=>`<option value="${m}">${m}</option>`).join('');
+  if(ui.activeMember) sel.value = ui.activeMember;
+  sel.onchange = ()=>{
+    ui.activeMember = sel.value;
+    ui.activeVoucherId = null; ui.selectedRowId = null;
+    renderVoucherList(); renderTable();
+  };
+}
+
+function renderVoucherList(){
+  const wrap = document.getElementById('voucher-list');
+  wrap.innerHTML = '';
+  if(!ui.activeZoneId || !ui.activeFloor){
+    wrap.innerHTML = '<div style="padding:10px;color:#9aa0a8;">좌측에서 층을 먼저 선택하세요</div>';
+    return;
+  }
+  const vouchers = getVouchers();
+  vouchers.forEach(v=>{
+    const div = document.createElement('div');
+    div.className = 'voucher-item' + (v.id===ui.activeVoucherId ? ' active':'');
+    div.textContent = v.name;
+    div.setAttribute('role','button');
+    div.setAttribute('tabindex','0');
+    div.onclick = ()=>{ ui.activeVoucherId = v.id; ui.selectedRowId=null; renderVoucherList(); renderTable(); };
+    wrap.appendChild(div);
+  });
+}
+
+function fmt(n, dec){
+  if(n===null||n===undefined||isNaN(n)) return '';
+  return Number(n).toLocaleString('ko-KR',{minimumFractionDigits:dec||0, maximumFractionDigits:dec||0});
+}
+
+function computeRow(row){
+  const shapeTotal = row.shape && row.shape.total ? row.shape.total : 0;
+  row.sum = (Number(row.count)||0) * (Number(row.spots)||0);
+  const grade = row.grade, dia = row.dia;
+  row.anchor = (state.anchor[grade] && state.anchor[grade][dia]) ? state.anchor[grade][dia] : '';
+  const uw = UNIT_WEIGHT[dia] || 0;
+  row.weight = Math.round(((shapeTotal/1000) * row.sum * uw) * 100) / 100;
+  return row;
+}
+
+function shapeMiniSVG(row){
+  const preset = SHAPE_PRESETS.find(p=>p.id === (row.shape && row.shape.presetId));
+  if(!preset) return '<span style="color:#9aa0a8;">(형상 없음)</span>';
+  const dims = row.shape.dims || {};
+  return renderShapeSVG(preset, dims, 140, 34, false);
+}
+
+function renderTable(){
+  const tbody = document.getElementById('rebar-tbody');
+  tbody.innerHTML = '';
+  const v = getActiveVoucher();
+  document.getElementById('voucher-status').textContent = '전표: ' + (v ? v.name : '-');
+  document.getElementById('curvoucher-label').textContent = v ? (ui.activeFloor + ' > ' + ui.activeMember + ' > ' + v.name) : '전표를 선택하세요';
+  let totalWeight = 0;
+  if(v){
+    v.rows.forEach((row,idx)=>{
+      computeRow(row);
+      totalWeight += row.weight || 0;
+      const tr = document.createElement('tr');
+      tr.className = row.id===ui.selectedRowId ? 'selected':'';
+      tr.setAttribute('data-row-id', row.id);
+      tr.innerHTML = `
+        <td>${idx+1}</td>
+        <td><input data-field="name" value="${row.name||''}"></td>
+        <td>${selectHTML(DIAMETERS,row.dia,'dia')}</td>
+        <td>${selectHTML(GRADES,row.grade,'grade')}</td>
+        <td>${selectHTML(USAGES,row.usage,'usage')}</td>
+        <td class="shape-cell" data-action="shape">${shapeMiniSVG(row)}</td>
+        <td>${fmt(row.shape?row.shape.total:0)}</td>
+        <td><input data-field="count" type="number" min="0" value="${row.count||0}"></td>
+        <td><input data-field="spots" type="number" min="0" value="${row.spots||0}"></td>
+        <td>${fmt(row.sum)}</td>
+        <td>${fmt(row.anchor)}</td>
+        <td><input data-field="pieces" type="number" min="0" value="${row.pieces||0}"></td>
+        <td>${fmt(row.weight,1)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+  document.getElementById('total-weight').textContent = '총 중량: ' + fmt(totalWeight,2) + ' kg';
+}
+
+function selectHTML(options, current, field){
+  return '<select data-field="'+field+'">' + options.map(o=>`<option value="${o}" ${o===current?'selected':''}>${o}</option>`).join('') + '</select>';
+}
+
+/* ===================== 테이블 이벤트 (위임) ===================== */
+document.getElementById('rebar-tbody').addEventListener('click', function(e){
+  const tr = e.target.closest('tr');
+  if(!tr) return;
+  const rowId = tr.getAttribute('data-row-id');
+  const cell = e.target.closest('td.shape-cell');
+  if(cell){
+    openShapeModal(rowId);
+    return;
+  }
+  ui.selectedRowId = rowId;
+  renderTable();
+});
+document.getElementById('rebar-tbody').addEventListener('change', function(e){
+  const el = e.target;
+  const field = el.getAttribute('data-field');
+  if(!field) return;
+  const tr = el.closest('tr');
+  const rowId = tr.getAttribute('data-row-id');
+  const v = getActiveVoucher();
+  if(!v) return;
+  const row = v.rows.find(r=>r.id===rowId);
+  if(!row) return;
+  if(field==='count' || field==='spots' || field==='pieces'){
+    row[field] = Number(el.value)||0;
+  } else {
+    row[field] = el.value;
+  }
+  renderTable();
+  autosave();
+});
+
+/* ===================== 철근 추가/삭제/정렬 ===================== */
+function newRow(){
+  return { id: uid(), name:'', dia:'D10', grade:'SD400', usage:'None',
+           shape:{presetId:null, dims:{}, total:0}, count:1, spots:1, sum:1, anchor:'', pieces:0, weight:0 };
+}
+
+document.getElementById('btn-row-add').onclick = ()=>{
+  const v = getActiveVoucher();
+  if(!v){ alert('먼저 전표를 선택하거나 추가하세요.'); return; }
+  v.rows.push(newRow());
+  renderTable(); autosave();
+};
+document.getElementById('btn-row-del').onclick = ()=>{
+  const v = getActiveVoucher();
+  if(!v || !ui.selectedRowId) return;
+  v.rows = v.rows.filter(r=>r.id!==ui.selectedRowId);
+  ui.selectedRowId = null;
+  renderTable(); autosave();
+};
+document.getElementById('btn-row-up').onclick = ()=>{
+  const v = getActiveVoucher();
+  if(!v || !ui.selectedRowId) return;
+  const i = v.rows.findIndex(r=>r.id===ui.selectedRowId);
+  if(i>0){ [v.rows[i-1],v.rows[i]]=[v.rows[i],v.rows[i-1]]; renderTable(); autosave(); }
+};
+document.getElementById('btn-row-down').onclick = ()=>{
+  const v = getActiveVoucher();
+  if(!v || !ui.selectedRowId) return;
+  const i = v.rows.findIndex(r=>r.id===ui.selectedRowId);
+  if(i>=0 && i<v.rows.length-1){ [v.rows[i+1],v.rows[i]]=[v.rows[i],v.rows[i+1]]; renderTable(); autosave(); }
+};
+
+/* ===================== 전표 추가/삭제 ===================== */
+document.getElementById('btn-voucher-add').onclick = ()=>{
+  if(!ui.activeZoneId || !ui.activeFloor){ alert('먼저 좌측에서 층을 선택하세요.'); return; }
+  if(!ui.activeMember) ui.activeMember = document.getElementById('member-select').value;
+  const list = getVouchers();
+  const defaultName = ui.activeMember + '-' + (list.length+1);
+  document.getElementById('vm-name').value = defaultName;
+  document.getElementById('voucher-modal').classList.remove('hidden');
+};
+document.getElementById('vm-cancel').onclick = ()=> document.getElementById('voucher-modal').classList.add('hidden');
+document.getElementById('vm-ok').onclick = ()=>{
+  const name = document.getElementById('vm-name').value.trim();
+  if(!name) return;
+  const list = getVouchers();
+  const voucher = { id: uid(), name: name, rows: [] };
+  list.push(voucher);
+  ui.activeVoucherId = voucher.id;
+  document.getElementById('voucher-modal').classList.add('hidden');
+  renderVoucherList(); renderTable(); autosave();
+};
+document.getElementById('btn-voucher-del').onclick = ()=>{
+  if(!ui.activeVoucherId) return;
+  if(!confirm('선택한 전표를 삭제할까요? 포함된 철근 데이터도 함께 삭제됩니다.')) return;
+  const list = getVouchers();
+  const filtered = list.filter(v=>v.id!==ui.activeVoucherId);
+  list.length = 0; Array.prototype.push.apply(list, filtered);
+  ui.activeVoucherId = null;
+  renderVoucherList(); renderTable(); autosave();
+};
+
+/* ===================== 공구 추가/삭제 ===================== */
+document.getElementById('btn-addzone').onclick = ()=>{
+  const n = state.zones.length+1;
+  state.zones.push({ id: uid(), name: n+'공구' });
+  renderTree(); autosave();
+};
+document.getElementById('btn-delzone').onclick = ()=>{
+  if(state.zones.length<=1){ alert('최소 1개의 공구는 있어야 합니다.'); return; }
+  const last = state.zones[state.zones.length-1];
+  if(!confirm(last.name + '을(를) 삭제할까요? 해당 공구의 모든 데이터가 삭제됩니다.')) return;
+  delete state.data[last.id];
+  state.zones.pop();
+  if(ui.activeZoneId===last.id){ ui.activeZoneId=null; ui.activeFloor=null; ui.activeVoucherId=null; }
+  renderTree(); renderVoucherList(); renderTable(); autosave();
+};
+
+/* ===================== 새 프로젝트 ===================== */
+document.getElementById('btn-new').onclick = ()=>{
+  document.getElementById('np-company').value='';
+  document.getElementById('np-site').value='새 프로젝트';
+  document.getElementById('np-date').value = new Date().toISOString().slice(0,10);
+  document.getElementById('np-memo').value='';
+  document.getElementById('np-basement').value=0;
+  document.getElementById('np-above').value=1;
+  document.getElementById('np-roof').value=0;
+  document.getElementById('newproj-modal').classList.remove('hidden');
+};
+document.getElementById('np-cancel').onclick = ()=> document.getElementById('newproj-modal').classList.add('hidden');
+document.getElementById('np-save').onclick = ()=>{
+  const meta = {
+    company: document.getElementById('np-company').value,
+    site: document.getElementById('np-site').value || '새 프로젝트',
+    startDate: document.getElementById('np-date').value,
+    memo: document.getElementById('np-memo').value
+  };
+  const counts = {
+    basement: Number(document.getElementById('np-basement').value)||0,
+    above: Number(document.getElementById('np-above').value)||0,
+    roof: Number(document.getElementById('np-roof').value)||0
+  };
+  state = newProjectState(meta, counts);
+  ui = { activeZoneId:null, activeFloor:null, activeMember:null, activeVoucherId:null, selectedRowId:null, currentFilePath:null };
+  document.getElementById('filepath-label').textContent = '저장된 파일 없음';
+  document.getElementById('newproj-modal').classList.add('hidden');
+  renderAll(); autosave();
+};
+document.getElementById('mb-new').onclick = ()=> document.getElementById('btn-new').click();
+
+/* ===================== 열기 / 저장 ===================== */
+document.getElementById('btn-save').onclick = saveToFile;
+document.getElementById('btn-open').onclick = ()=> document.getElementById('file-input').click();
+document.getElementById('file-input').addEventListener('change', function(e){
+  if(e.target.files[0]) openFromFile(e.target.files[0]);
+  e.target.value='';
+});
+
+/* ===================== 철근 형상 다이얼로그 ===================== */
+function computeShapeGeometry(preset, dims){
+  if(preset.type==='circle'){
+    const R = Number(dims.R)||0;
+    return { isCircle:true, R:R, half:false, total: Math.round(2*Math.PI*R) };
+  }
+  if(preset.type==='semicircle'){
+    const R = Number(dims.R)||0;
+    return { isCircle:true, R:R, half:true, total: Math.round(Math.PI*R) };
+  }
+  let x=0,y=0, pts=[[0,0]], total=0, labels=[];
+  preset.segments.forEach(seg=>{
+    const len = Number(dims[seg.key])||0;
+    const angDeg = seg.angleField!=null ? (Number(dims[seg.angleField])||0) : seg.angle;
+    const rad = angDeg*Math.PI/180;
+    const nx = x+len*Math.cos(rad), ny = y+len*Math.sin(rad);
+    labels.push({mid:[(x+nx)/2,(y+ny)/2], val:len});
+    pts.push([nx,ny]);
+    x=nx; y=ny; total+=len;
+  });
+  return { isCircle:false, points:pts, labels:labels, total: Math.round(total) };
+}
+
+function renderShapeSVG(preset, dims, w, h, showLabels){
+  const geo = computeShapeGeometry(preset, dims);
+  const pad = 14;
+  if(geo.isCircle){
+    const cx=w/2, cy=h/2;
+    const rr = Math.max(6, Math.min(w,h)/2 - pad);
+    if(geo.half){
+      return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
+        <path d="M ${cx-rr} ${cy} A ${rr} ${rr} 0 0 1 ${cx+rr} ${cy}" fill="none" stroke="#1f2430" stroke-width="2"/>
+      </svg>`;
+    }
+    return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="${cx}" cy="${cy}" r="${rr}" fill="none" stroke="#1f2430" stroke-width="2"/>
+    </svg>`;
+  }
+  const xs = geo.points.map(p=>p[0]), ys = geo.points.map(p=>p[1]);
+  const minX=Math.min(...xs), maxX=Math.max(...xs), minY=Math.min(...ys), maxY=Math.max(...ys);
+  const bw = Math.max(maxX-minX, 1), bh = Math.max(maxY-minY, 1);
+  const scale = Math.min((w-2*pad)/bw, (h-2*pad)/bh);
+  const toSvg = (p)=>{
+    const sx = pad + (p[0]-minX)*scale;
+    const sy = h - pad - (p[1]-minY)*scale;
+    return [sx,sy];
+  };
+  const spts = geo.points.map(toSvg);
+  const pointsAttr = spts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
+  let labelSvg = '';
+  if(showLabels){
+    labelSvg = geo.labels.map(l=>{
+      const [lx,ly] = toSvg(l.mid);
+      return `<text x="${lx}" y="${ly-4}" font-size="10" text-anchor="middle" fill="#2563eb">${fmt(l.val)}</text>`;
+    }).join('');
+  }
+  return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
+    <polyline points="${pointsAttr}" fill="none" stroke="#1f2430" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${labelSvg}
+  </svg>`;
+}
+
+function openShapeModal(rowId){
+  ui.shapeTargetRowId = rowId;
+  const v = getActiveVoucher();
+  const row = v.rows.find(r=>r.id===rowId);
+  ui.shapeSelectedPreset = (row.shape && row.shape.presetId) ? row.shape.presetId : SHAPE_PRESETS[0].id;
+  ui.shapeDims = Object.assign({}, (row.shape && row.shape.dims) || {});
+  renderShapeGallery();
+  renderShapeDimsForm();
+  updateShapePreview();
+  document.getElementById('shape-modal').classList.remove('hidden');
+}
+
+function renderShapeGallery(){
+  const gal = document.getElementById('shape-gallery');
+  gal.innerHTML='';
+  SHAPE_PRESETS.forEach(p=>{
+    const div = document.createElement('div');
+    div.className = 'shape-thumb' + (p.id===ui.shapeSelectedPreset ? ' selected':'');
+    div.setAttribute('role','button');
+    div.setAttribute('tabindex','0');
+    div.innerHTML = renderShapeSVG(p, p.sample, 110, 60, false) + `<div class="tname">${p.id} ${p.name}</div>`;
+    div.onclick = ()=>{
+      ui.shapeSelectedPreset = p.id;
+      ui.shapeDims = Object.assign({}, p.sample);
+      renderShapeGallery(); renderShapeDimsForm(); updateShapePreview();
+    };
+    gal.appendChild(div);
+  });
+}
+
+function renderShapeDimsForm(){
+  const preset = SHAPE_PRESETS.find(p=>p.id===ui.shapeSelectedPreset);
+  const wrap = document.getElementById('shape-dims');
+  wrap.innerHTML='';
+  preset.fields.forEach(f=>{
+    const label = f==='angle' ? '각도(°)' : (f==='R' ? '반지름 R' : f+' (mm)');
+    const div = document.createElement('div');
+    div.className='field';
+    div.innerHTML = `<label>${label}</label><input type="number" data-dim="${f}" value="${ui.shapeDims[f]!=null?ui.shapeDims[f]:''}">`;
+    wrap.appendChild(div);
+  });
+  wrap.querySelectorAll('input').forEach(inp=>{
+    inp.addEventListener('input', ()=>{
+      ui.shapeDims[inp.getAttribute('data-dim')] = Number(inp.value)||0;
+      updateShapePreview();
+    });
+  });
+}
+
+function updateShapePreview(){
+  const preset = SHAPE_PRESETS.find(p=>p.id===ui.shapeSelectedPreset);
+  const box = document.getElementById('shape-preview-box');
+  box.innerHTML = renderShapeSVG(preset, ui.shapeDims, 340, 170, true);
+  const geo = computeShapeGeometry(preset, ui.shapeDims);
+  document.getElementById('shape-total').textContent = '총 길이: ' + fmt(geo.total) + ' mm';
+}
+
+document.getElementById('sm-cancel').onclick = ()=> document.getElementById('shape-modal').classList.add('hidden');
+document.getElementById('sm-ok').onclick = ()=>{
+  const preset = SHAPE_PRESETS.find(p=>p.id===ui.shapeSelectedPreset);
+  const geo = computeShapeGeometry(preset, ui.shapeDims);
+  const v = getActiveVoucher();
+  const row = v.rows.find(r=>r.id===ui.shapeTargetRowId);
+  row.shape = { presetId: preset.id, dims: Object.assign({}, ui.shapeDims), total: geo.total };
+  document.getElementById('shape-modal').classList.add('hidden');
+  renderTable(); autosave();
+};
+
+/* ===================== 정착길이 설정 ===================== */
+document.getElementById('btn-anchor').onclick = ()=>{
+  renderAnchorTable();
+  document.getElementById('anchor-modal').classList.remove('hidden');
+};
+document.getElementById('am-close').onclick = ()=>{
+  document.getElementById('anchor-modal').classList.add('hidden');
+  renderTable(); autosave();
+};
+function renderAnchorTable(){
+  const tbl = document.getElementById('anchor-table');
+  let html = '<tr><th>강종 \\ 규격</th>' + DIAMETERS.map(d=>`<th>${d}</th>`).join('') + '</tr>';
+  GRADES.forEach(g=>{
+    html += `<tr><td style="font-weight:600;background:#f8f9fb;">${g}</td>`;
+    DIAMETERS.forEach(d=>{
+      state.anchor[g] = state.anchor[g] || {};
+      const val = state.anchor[g][d] || '';
+      html += `<td><input type="number" min="0" data-g="${g}" data-d="${d}" value="${val}"></td>`;
+    });
+    html += '</tr>';
+  });
+  tbl.innerHTML = html;
+  tbl.querySelectorAll('input').forEach(inp=>{
+    inp.addEventListener('input', ()=>{
+      const g = inp.getAttribute('data-g'), d = inp.getAttribute('data-d');
+      state.anchor[g][d] = Number(inp.value)||0;
+    });
+  });
+}
+
+/* ===================== 인쇄 미리보기 ===================== */
+document.getElementById('btn-print').onclick = ()=>{
+  const v = getActiveVoucher();
+  if(!v){ alert('먼저 전표를 선택하세요.'); return; }
+  let total = 0;
+  const rowsHtml = v.rows.map((row,idx)=>{
+    computeRow(row);
+    total += row.weight||0;
+    const preset = SHAPE_PRESETS.find(p=>p.id===(row.shape&&row.shape.presetId));
+    const svg = preset ? renderShapeSVG(preset, row.shape.dims, 140, 40, true) : '';
+    return `<tr>
+      <td>${idx+1}</td><td>${row.name||''}</td><td>${row.dia}</td><td>${row.grade}</td><td>${row.usage}</td>
+      <td>${svg}</td><td>${fmt(row.shape?row.shape.total:0)}</td><td>${fmt(row.count)}</td><td>${fmt(row.spots)}</td>
+      <td>${fmt(row.sum)}</td><td>${fmt(row.anchor)}</td><td>${fmt(row.pieces)}</td><td>${fmt(row.weight,1)}</td>
+    </tr>`;
+  }).join('');
+  const html = `
+    <h1>철 근 가 공 명 세 서</h1>
+    <table class="print-head">
+      <tr><td class="k">현 장 명</td><td>${state.meta.site||''}</td><td class="k">회 사 명</td><td>${state.meta.company||''}</td></tr>
+      <tr><td class="k">공 구</td><td>${state.zones.find(z=>z.id===ui.activeZoneId)?.name||''}</td><td class="k">부 재</td><td>${ui.activeFloor||''} - ${ui.activeMember||''}</td></tr>
+      <tr><td class="k">전 표</td><td>${v.name}</td><td class="k">작 성 일</td><td>${new Date().toISOString().slice(0,10)}</td></tr>
+    </table>
+    <table class="print-table">
+      <thead><tr><th>NO</th><th>명칭</th><th>지름</th><th>강종</th><th>용도</th><th>형상</th><th>총길이</th><th>개수</th><th>개소</th><th>합계</th><th>정착</th><th>본수</th><th>실중량</th></tr></thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>
+    <div id="print-total">합 계: ${fmt(total,2)} kg</div>
+  `;
+  document.getElementById('print-area').innerHTML = html;
+  document.getElementById('print-modal').classList.remove('hidden');
+};
+document.getElementById('pm-close').onclick = ()=> document.getElementById('print-modal').classList.add('hidden');
+document.getElementById('pm-print').onclick = ()=> window.print();
+
+/* ===================== 초기화 ===================== */
+function init(){
+  const saved = loadAutosave();
+  if(saved){
+    state = saved;
+  } else {
+    state = newProjectState({company:'',site:'새 프로젝트',startDate:new Date().toISOString().slice(0,10),memo:''}, {basement:0,above:1,roof:0});
+  }
+  renderAll();
+}
+init();
+</script>
+</body>
+</html>
