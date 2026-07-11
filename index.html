@@ -525,8 +525,10 @@ document.getElementById('rebar-tbody').addEventListener('click', function(e){
     openShapeModal(rowId);
     return;
   }
+  if(ui.selectedRowId === rowId) return;
   ui.selectedRowId = rowId;
-  renderTable();
+  tr.parentElement.querySelectorAll('tr.selected').forEach(el=>el.classList.remove('selected'));
+  tr.classList.add('selected');
 });
 document.getElementById('rebar-tbody').addEventListener('change', function(e){
   const el = e.target;
