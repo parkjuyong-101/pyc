@@ -727,8 +727,10 @@ function openShapeModal(rowId){
   ui.shapeTargetRowId = rowId;
   const v = getActiveVoucher();
   const row = v.rows.find(r=>r.id===rowId);
-  ui.shapeSelectedPreset = (row.shape && row.shape.presetId) ? row.shape.presetId : SHAPE_PRESETS[0].id;
-  ui.shapeDims = Object.assign({}, (row.shape && row.shape.dims) || {});
+  const hasSavedShape = row.shape && row.shape.presetId;
+  ui.shapeSelectedPreset = hasSavedShape ? row.shape.presetId : SHAPE_PRESETS[0].id;
+  const activePreset = SHAPE_PRESETS.find(p=>p.id===ui.shapeSelectedPreset);
+  ui.shapeDims = Object.assign({}, hasSavedShape ? row.shape.dims : activePreset.sample);
   renderShapeGallery();
   renderShapeDimsForm();
   updateShapePreview();
