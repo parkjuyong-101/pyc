@@ -296,6 +296,8 @@ const SHAPE_PRESETS = [
     segments:[{key:'A',angleField:'angle'}], sample:{A:300,angle:45} },
   { id:'T-08', name:'나선형/원형후프(R=)', fields:['R'], type:'circle', sample:{R:80} },
   { id:'T-09', name:'표준갈고리(반원형, 180도, R=)', fields:['R'], type:'semicircle', sample:{R:80} },
+  { id:'T-10', name:'자유형(직접 절곡 지정)', free:true, maxSegments:7,
+    sample:{segCount:3, A:200,angleA:0, B:150,angleB:90, C:150,angleC:-90} },
 ];
 
 let state = null;
@@ -671,6 +673,22 @@ function computeShapeGeometry(preset, dims){
     const R = Number(dims.R)||0;
     return { isCircle:true, R:R, half:true, total: Math.round(Math.PI*R) };
   }
+  if(preset.free){
+    const letters = ['A','B','C','D','E','F','G'];
+    const n = Math.min(Math.max(Number(dims.segCount)||1,1), letters.length);
+    let fx=0,fy=0, fpts=[[0,0]], ftotal=0, flabels=[];
+    for(let i=0;i<n;i++){
+      const k = letters[i];
+      const len = Number(dims[k])||0;
+      const ang = Number(dims['angle'+k])||0;
+      const rad = ang*Math.PI/180;
+      const nx = fx+len*Math.cos(rad), ny = fy+len*Math.sin(rad);
+      flabels.push({mid:[(fx+nx)/2,(fy+ny)/2], val:len});
+      fpts.push([nx,ny]);
+      fx=nx; fy=ny; ftotal+=len;
+    }
+    return { isCircle:false, points:fpts, labels:flabels, total: Math.round(ftotal) };
+  }
   let x=0,y=0, pts=[[0,0]], total=0, labels=[];
   preset.segments.forEach(seg=>{
     const len = Number(dims[seg.key])||0;
@@ -759,6 +777,39 @@ function renderShapeDimsForm(){
   const preset = SHAPE_PRESETS.find(p=>p.id===ui.shapeSelectedPreset);
   const wrap = document.getElementById('shape-dims');
   wrap.innerHTML='';
+  if(preset.free){
+    const letters = ['A','B','C','D','E','F','G'];
+    const countDiv = document.createElement('div');
+    countDiv.className='field';
+    countDiv.style.gridColumn='1 / -1';
+    const segCount = Math.min(Math.max(Number(ui.shapeDims.segCount)||3,1), preset.maxSegments);
+    countDiv.innerHTML = `<label>구간 수</label><select id="shape-segcount">${
+      Array.from({length:preset.maxSegments},(_,i)=>i+1).map(n=>`<option value="${n}" ${n===segCount?'selected':''}>${n}구간</option>`).join('')
+    }</select>`;
+    wrap.appendChild(countDiv);
+    countDiv.querySelector('select').addEventListener('change', (e)=>{
+      ui.shapeDims.segCount = Number(e.target.value);
+      renderShapeDimsForm(); updateShapePreview();
+    });
+    for(let i=0;i<segCount;i++){
+      const k = letters[i];
+      const lenDiv = document.createElement('div');
+      lenDiv.className='field';
+      lenDiv.innerHTML = `<label>구간${i+1}(${k}) 길이 (mm)</label><input type="number" data-dim="${k}" value="${ui.shapeDims[k]!=null?ui.shapeDims[k]:''}">`;
+      wrap.appendChild(lenDiv);
+      const angDiv = document.createElement('div');
+      angDiv.className='field';
+      angDiv.innerHTML = `<label>구간${i+1}(${k}) 각도 (°)</label><input type="number" data-dim="angle${k}" value="${ui.shapeDims['angle'+k]!=null?ui.shapeDims['angle'+k]:0}">`;
+      wrap.appendChild(angDiv);
+    }
+    wrap.querySelectorAll('input').forEach(inp=>{
+      inp.addEventListener('input', ()=>{
+        ui.shapeDims[inp.getAttribute('data-dim')] = Number(inp.value)||0;
+        updateShapePreview();
+      });
+    });
+    return;
+  }
   preset.fields.forEach(f=>{
     const label = f==='angle' ? '각도(°)' : (f==='R' ? '반지름 R' : f+' (mm)');
     const div = document.createElement('div');
