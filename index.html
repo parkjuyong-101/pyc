@@ -280,28 +280,22 @@ const MEMBER_TYPES = ['기초','기둥','벽체','보','슬래브','계단','기
 const USAGES = ['None','주근','띠철근','배력근','온도철근','기타'];
 
 const SHAPE_PRESETS = [
-  { id:'T-00', name:'직선', fields:['A'],
+  { id:'T-01', name:'직선형', fields:['A'],
     segments:[{key:'A',angle:0}], sample:{A:400} },
-  { id:'T-01', name:'ㄱ자(단순절곡)', fields:['A','B'],
+  { id:'T-02', name:'L형(단순절곡/일단갈고리)', fields:['A','B'],
     segments:[{key:'A',angle:0},{key:'B',angle:90}], sample:{A:300,B:150} },
-  { id:'T-02', name:'ㄷ자(3단/스터럽다리)', fields:['A','B','C'],
+  { id:'T-03', name:'U형(양단갈고리/스터럽다리)', fields:['A','B','C'],
     segments:[{key:'A',angle:-90},{key:'B',angle:0},{key:'C',angle:90}], sample:{A:80,B:200,C:80} },
-  { id:'T-03', name:'사각후프(닫힌형)', fields:['A','B','C','D'],
+  { id:'T-04', name:'폐쇄형 후프/스터럽(사각)', fields:['A','B','C','D'],
     segments:[{key:'A',angle:0},{key:'B',angle:-90},{key:'C',angle:180},{key:'D',angle:90}], sample:{A:200,B:150,C:200,D:150} },
-  { id:'T-04', name:'Z자형', fields:['A','B','C'],
-    segments:[{key:'A',angle:0},{key:'B',angle:-45},{key:'C',angle:0}], sample:{A:150,B:120,C:150} },
-  { id:'T-05', name:'계단형(5단)', fields:['A','B','C','D','E'],
+  { id:'T-05', name:'크랭크형(절곡보강근)', fields:['A','B','C'],
+    segments:[{key:'A',angle:0},{key:'B',angle:-30},{key:'C',angle:0}], sample:{A:150,B:120,C:150} },
+  { id:'T-06', name:'계단형(다단절곡)', fields:['A','B','C','D','E'],
     segments:[{key:'A',angle:0},{key:'B',angle:-90},{key:'C',angle:0},{key:'D',angle:-90},{key:'E',angle:0}], sample:{A:100,B:80,C:100,D:80,E:100} },
-  { id:'T-06', name:'양단후크형(5단)', fields:['A','B','C','D','E'],
-    segments:[{key:'A',angle:90},{key:'B',angle:0},{key:'C',angle:-90},{key:'D',angle:0},{key:'E',angle:90}], sample:{A:60,B:200,C:80,D:200,E:60} },
-  { id:'T-07', name:'ㄷ자(4단, 뒤집힘)', fields:['A','B','C','D'],
-    segments:[{key:'A',angle:90},{key:'B',angle:0},{key:'C',angle:0},{key:'D',angle:-90}], sample:{A:80,B:150,C:150,D:80} },
-  { id:'T-08', name:'사선(경사직선)', fields:['A','angle'], isDiagonal:true,
+  { id:'T-07', name:'경사직선형(사인장/경사배근)', fields:['A','angle'], isDiagonal:true,
     segments:[{key:'A',angleField:'angle'}], sample:{A:300,angle:45} },
-  { id:'T-09', name:'삼각절곡', fields:['A','B','C'],
-    segments:[{key:'A',angle:0},{key:'B',angle:120},{key:'C',angle:-120}], sample:{A:200,B:150,C:150} },
-  { id:'T-10', name:'원형후프(R=)', fields:['R'], type:'circle', sample:{R:80} },
-  { id:'T-11', name:'반원형(R=)', fields:['R'], type:'semicircle', sample:{R:80} },
+  { id:'T-08', name:'나선형/원형후프(R=)', fields:['R'], type:'circle', sample:{R:80} },
+  { id:'T-09', name:'표준갈고리(반원형, 180도, R=)', fields:['R'], type:'semicircle', sample:{R:80} },
 ];
 
 let state = null;
