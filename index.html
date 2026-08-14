@@ -1500,8 +1500,15 @@ init();
 try{
   if(!localStorage.getItem('rebar_tour_seen')) setTimeout(startTour,350);
 }catch(e){ setTimeout(startTour,350); }
-window.addEventListener('pywebviewready', ()=>{
+window.addEventListener('pywebviewready', async ()=>{
   if(window.pywebview && window.pywebview.api){
+    try{
+      const lastProject = await window.pywebview.api.load_last_project();
+      if(lastProject.ok){
+        applyLoadedProject(lastProject.state, lastProject.name + ' (자동 복원)', lastProject.path);
+        return;
+      }
+    }catch(e){}
     window.pywebview.api.update_state(JSON.stringify(state), false).catch(()=>{});
   }
 });

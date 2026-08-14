@@ -14,6 +14,9 @@ def resource_path(relative_path):
 class ProjectApi:
     def __init__(self):
         self._window = None
+        app_data = os.getenv('APPDATA') or os.path.expanduser('~')
+        self._settings_dir = os.path.join(app_data, 'RebarQuantityCalculator')
+        self._settings_path = os.path.join(self._settings_dir, 'settings.json')
         self.state_json = None
         self.current_path = None
         self.dirty = False
@@ -44,6 +47,32 @@ class ProjectApi:
         self.current_path = path
         self.state_json = state_json
         self.dirty = False
+        self._remember_path(path)
+
+    def _remember_path(self, path):
+        os.makedirs(self._settings_dir, exist_ok=True)
+        temp_path = self._settings_path + '.tmp'
+        with open(temp_path, 'w', encoding='utf-8') as file:
+            json.dump({'last_project_path': path}, file, ensure_ascii=False)
+        os.replace(temp_path, self._settings_path)
+
+    def load_last_project(self):
+        try:
+            if not os.path.isfile(self._settings_path):
+                return {'ok': False, 'not_found': True}
+            with open(self._settings_path, 'r', encoding='utf-8') as file:
+                settings = json.load(file)
+            path = settings.get('last_project_path')
+            if not path or not os.path.isfile(path):
+                return {'ok': False, 'not_found': True}
+            with open(path, 'r', encoding='utf-8') as file:
+                parsed = json.load(file)
+            self.current_path = path
+            self.state_json = json.dumps(parsed, ensure_ascii=False)
+            self.dirty = False
+            return {'ok': True, 'path': path, 'name': os.path.basename(path), 'state': parsed}
+        except Exception as error:
+            return {'ok': False, 'error': str(error)}
 
     def _choose_save_path(self, suggested_name):
         selected = self._window.create_file_dialog(
@@ -83,6 +112,7 @@ class ProjectApi:
             self.current_path = path
             self.state_json = state_json
             self.dirty = False
+            self._remember_path(path)
             return {'ok': True, 'path': path, 'name': os.path.basename(path), 'state': parsed}
         except Exception as error:
             return {'ok': False, 'error': str(error)}
