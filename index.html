@@ -126,7 +126,9 @@
     #print-modal .btns{display:none;}
   }
   .icon-btn{cursor:pointer;color:var(--danger);font-weight:700;}
-  .tour-highlight{position:relative!important;z-index:2001!important;border-radius:5px!important;box-shadow:0 0 0 5px #facc15,0 0 0 9999px rgba(15,23,42,.68)!important;}
+  #tour-backdrop{position:fixed;inset:0;z-index:2000;background:rgba(15,23,42,.68);pointer-events:none;opacity:1;transition:opacity .12s ease;}
+  #tour-backdrop.hidden{display:none;opacity:0;}
+  .tour-highlight{position:relative!important;z-index:2001!important;border-radius:5px!important;outline:5px solid #facc15!important;outline-offset:0!important;box-shadow:0 3px 14px rgba(0,0,0,.28)!important;}
   #tour-tooltip{position:fixed;z-index:2002;width:330px;background:#fff;border:2px solid #facc15;border-radius:10px;box-shadow:0 12px 35px rgba(0,0,0,.35);padding:16px;}
   #tour-tooltip.hidden{display:none;}
   #tour-step{font-size:12px;color:#64748b;font-weight:700;margin-bottom:5px;}
@@ -293,6 +295,7 @@
 
 <input type="file" id="file-input" accept=".json" style="display:none;">
 
+<div id="tour-backdrop" class="hidden" aria-hidden="true"></div>
 <div id="tour-tooltip" class="hidden" role="dialog" aria-live="polite">
   <div id="tour-step"></div>
   <div id="tour-title"></div>
@@ -1231,6 +1234,7 @@ function showTourStep(index){
   target.scrollIntoView({block:'center',inline:'center'});
   target.classList.add('tour-highlight');
   const tip = document.getElementById('tour-tooltip');
+  document.getElementById('tour-backdrop').classList.remove('hidden');
   document.getElementById('tour-step').textContent = `${tourIndex+1} / ${TOUR_STEPS.length}`;
   document.getElementById('tour-title').textContent = step.title;
   document.getElementById('tour-text').textContent = step.text;
@@ -1245,6 +1249,7 @@ function finishTour(){
   if(tourTarget) tourTarget.classList.remove('tour-highlight');
   tourTarget=null; tourIndex=-1;
   document.getElementById('tour-tooltip').classList.add('hidden');
+  document.getElementById('tour-backdrop').classList.add('hidden');
   try{ localStorage.setItem('rebar_tour_seen','1'); }catch(e){}
 }
 document.getElementById('tour-next').onclick=()=> tourIndex>=TOUR_STEPS.length-1 ? finishTour() : showTourStep(tourIndex+1);
