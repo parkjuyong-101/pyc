@@ -449,8 +449,12 @@ function getActiveVoucher(){
 }
 
 /* ===================== 저장 / 불러오기 ===================== */
-function autosave(){
-  try{ localStorage.setItem('rebar_calc_state', JSON.stringify(state)); }catch(e){}
+function autosave(markDirty=true){
+  const stateJson = JSON.stringify(state);
+  try{ localStorage.setItem('rebar_calc_state', stateJson); }catch(e){}
+  if(window.pywebview && window.pywebview.api){
+    window.pywebview.api.update_state(stateJson, markDirty).catch(()=>{});
+  }
 }
 function loadAutosave(){
   try{
@@ -460,15 +464,33 @@ function loadAutosave(){
   return null;
 }
 
-function saveToFile(){
+async function saveToFile(){
+  const fname = (state.meta.site || '철근가공물량') + '.rebar.json';
+  if(window.pywebview && window.pywebview.api){
+    const result = await window.pywebview.api.save_project(JSON.stringify(state), state.meta.site || '철근가공물량', false);
+    if(result.ok){
+      ui.currentFilePath = result.path;
+      document.getElementById('filepath-label').textContent = result.name + ' (저장됨)';
+    }else if(!result.cancelled){
+      alert('저장하지 못했습니다: ' + (result.error || '알 수 없는 오류'));
+    }
+    return;
+  }
   const blob = new Blob([JSON.stringify(state,null,2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
-  const fname = (state.meta.site || '프로젝트') + '.rebar.json';
   a.href = url; a.download = fname;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
   document.getElementById('filepath-label').textContent = fname + ' (저장됨)';
+}
+
+function applyLoadedProject(loaded, fileName, filePath=null){
+  state = loaded;
+  ui = { activeZoneId:null, activeFloor:null, activeMember:null, activeVoucherId:null, selectedRowId:null, currentFilePath:filePath || fileName };
+  document.getElementById('filepath-label').textContent = fileName;
+  renderAll();
+  autosave(false);
 }
 
 function openFromFile(file){
@@ -476,11 +498,7 @@ function openFromFile(file){
   reader.onload = function(e){
     try{
       const loaded = JSON.parse(e.target.result);
-      state = loaded;
-      ui = { activeZoneId:null, activeFloor:null, activeMember:null, activeVoucherId:null, selectedRowId:null, currentFilePath:file.name };
-      document.getElementById('filepath-label').textContent = file.name;
-      renderAll();
-      autosave();
+      applyLoadedProject(loaded, file.name, file.name);
     }catch(err){
       alert('파일을 열 수 없습니다: ' + err.message);
     }
@@ -764,7 +782,18 @@ document.getElementById('mb-new').onclick = ()=> document.getElementById('btn-ne
 
 /* ===================== 열기 / 저장 ===================== */
 document.getElementById('btn-save').onclick = saveToFile;
-document.getElementById('btn-open').onclick = ()=> document.getElementById('file-input').click();
+document.getElementById('btn-open').onclick = async ()=>{
+  if(window.pywebview && window.pywebview.api){
+    const result = await window.pywebview.api.open_project();
+    if(result.ok){
+      applyLoadedProject(result.state, result.name, result.path);
+    }else if(!result.cancelled){
+      alert('파일을 열지 못했습니다: ' + (result.error || '알 수 없는 오류'));
+    }
+  }else{
+    document.getElementById('file-input').click();
+  }
+};
 document.getElementById('file-input').addEventListener('change', function(e){
   if(e.target.files[0]) openFromFile(e.target.files[0]);
   e.target.value='';
@@ -1150,6 +1179,11 @@ function init(){
   renderAll();
 }
 init();
+window.addEventListener('pywebviewready', ()=>{
+  if(window.pywebview && window.pywebview.api){
+    window.pywebview.api.update_state(JSON.stringify(state), false).catch(()=>{});
+  }
+});
 </script>
 </body>
 </html>
