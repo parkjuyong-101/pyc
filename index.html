@@ -1262,6 +1262,30 @@ document.getElementById('tour-skip').onclick=finishTour;
 document.getElementById('btn-help').onclick=startTour;
 window.addEventListener('resize',()=>{ if(tourTarget) positionTourTooltip(tourTarget); });
 
+document.addEventListener('keydown',(event)=>{
+  if(event.key!=='Escape') return;
+  if(!document.getElementById('tour-tooltip').classList.contains('hidden')){
+    finishTour();
+    event.preventDefault();
+    return;
+  }
+  const closers = [
+    ['print-modal','pm-close'],
+    ['anchor-modal','am-close'],
+    ['shape-modal','sm-cancel'],
+    ['voucher-modal','vm-cancel'],
+    ['newproj-modal','np-cancel']
+  ];
+  for(const [modalId,buttonId] of closers){
+    if(!document.getElementById(modalId).classList.contains('hidden')){
+      document.getElementById(buttonId).click();
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+  }
+});
+
 /* ===================== 초기화 ===================== */
 function init(){
   const saved = loadAutosave();
