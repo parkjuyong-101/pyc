@@ -319,46 +319,46 @@ const SHAPE_PRESETS = [
   makeShape('G1-01','main',[0,90],[500,180]),
   makeShape('G1-02','main',[0,45],[500,180],[1]),
   makeShape('G1-03','main',[0,90,0],[420,180,180]),
-  makeShape('G1-04','main',[0,90,180],[420,180,180]),
-  makeShape('G1-05','main',[0,45,90],[180,140,180],[1]),
-  makeShape('G1-06','main',[0,45,0],[180,140,180],[1]),
+  makeShape('G1-04','main',[0,90,180],[420,180,420]),
+  makeShape('G1-05','main',[0,45,90],[300,140,220],[1]),
+  makeShape('G1-06','main',[0,45,0],[300,140,240],[1]),
   makeShape('G1-07','main',[90,0,45],[220,380,150],[2]),
   makeShape('G1-08','main',[90,0,-45],[220,380,150],[2]),
-  makeShape('G1-09','main',[45,0,45],[160,500,160],[0,2]),
-  makeShape('G1-10','main',[45,0,-45],[160,500,160],[0,2]),
+  makeShape('G1-09','main',[-45,0,45],[160,500,160],[1,2]),
+  makeShape('G1-10','main',[-45,0,-45],[160,500,160],[1,2]),
   makeShape('G1-11','main',[90,0,-90,180],[250,360,250,180]),
-  makeShape('G1-12','main',[90,0,-45,0],[250,350,140,180],[2]),
-  makeShape('G1-13','main',[90,0,45,0],[250,350,140,180],[2]),
-  makeShape('G1-14','main',[90,0,-45,0,45],[250,280,130,220,130],[2,4]),
-  makeShape('G1-15','main',[90,0,-45,0,-45,0],[250,230,120,200,120,230],[2,4]),
-  makeShape('G1-16','main',[90,0,-45,0,45,0],[250,230,120,200,120,230],[2,4]),
-  makeShape('G1-17','main',[45,0,-45,0,45],[160,360,140,220,140],[0,2]),
-  makeShape('G1-18','main',[90,0,-90,0],[250,240,180,180]),
-  makeShape('G1-19','main',[45,0,45,0],[160,300,120,220],[0]),
-  makeShape('G1-20','main',[90,0,-45,0,-45,0],[250,220,110,180,110,220],[2,4]),
-  makeShape('G1-21','main',[90,0,-90,0],[250,200,160,180]),
-  makeShape('G1-22','main',[90,0,-90,0,-90,0],[250,180,160,180,160,180]),
+  makeShape('G1-12','main',[90,0,-45,0],[250,350,140,300],[2]),
+  makeShape('G1-13','main',[90,0,45,0],[250,350,140,300],[2]),
+  makeShape('G1-14','main',[90,0,-45,0,45],[250,280,130,300,130],[2,4]),
+  makeShape('G1-15','main',[90,0,-45,0,45,0],[250,230,120,230,120,230],[2,4]),
+  makeShape('G1-16','main',[90,0,-45,0,45,0,-90],[250,230,120,230,120,230,250],[2,4]),
+  makeShape('G1-17','main',[90,0,45,0,45],[220,260,130,320,130],[2,4]),
+  makeShape('G1-18','main',[0,-90,0,90],[220,220,320,150]),
+  makeShape('G1-19','main',[0,45,0,90,180],[220,130,330,150,100],[1]),
+  makeShape('G1-20','main',[0,-90,-45,0,45,90,180],[160,180,120,180,120,180,160],[2,5]),
+  makeShape('G1-21','main',[0,-90,0,90,0],[180,220,180,220,180]),
+  makeShape('G1-22','main',[0,-90,0,90,0,-90],[180,210,180,210,180,210]),
 
   // 보조철근: 2.png, 왼쪽 위부터 행 우선 순서(19종). T2-02가 캡처의 선택 형상(110/500/110).
   makeShape('T1-08','stirrup',[90,0,-90],[200,500,200]),
-  makeShape('T1-09','stirrup',[90,0,45],[110,500,110]),
-  makeShape('T1-10','stirrup',[45,0,-45],[160,500,160]),
-  makeShape('T1-11','stirrup',[-45,0,-90,135],[160,420,220,160]),
-  makeShape('T1-12','stirrup',[0,-90,0,90],[500,250,180,220]),
-  makeShape('T1-13','stirrup',[0,-90,0,-45],[500,250,180,180]),
-  makeShape('T1-14','stirrup',[0,-90,0,90,0],[180,220,500,220,180]),
-  makeShape('T1-15','stirrup',[0,-90,0,90,45],[180,220,500,220,160]),
-  makeShape('T1-16','stirrup',[-45,-90,0,90,45],[160,180,500,180,160]),
-  makeShape('T1-17','stirrup',[45,-90,0,90,-45],[160,180,500,180,160]),
-  makeShape('T1-18','stirrup',[0,-90,0,90,0],[180,220,500,220,180]),
-  makeShape('T1-19','stirrup',[-45,-90,0,90,45],[160,180,500,180,160]),
-  makeShape('T1-20','stirrup',[0,-90,0,90,0,-90],[180,200,500,200,180,120]),
-  makeShape('T1-21','stirrup',[-45,-90,0,90,45,0],[160,180,500,180,160,140]),
-  makeShape('T1-22','stirrup',[-45,-45,-90,0,90,45],[140,140,180,500,180,140]),
-  makeShape('T1-23','stirrup',[-45,-45,-90,0,90],[140,140,180,500,180]),
-  makeShape('T1-24','stirrup',[45,90,0,-90,-45],[160,180,500,180,160]),
-  { id:'T1-25', name:'T1-25', tab:'stirrup', fields:['R','arcAngle'], type:'circle', sample:{R:250,arcAngle:360} },
-  { id:'T1-26', name:'T1-26', tab:'stirrup', fields:['A','B','R','arcAngle'], type:'semicircle', sample:{A:110,B:110,R:250,arcAngle:180} },
+  makeShape('T1-09','stirrup',[90,0,-135],[180,500,180]),
+  makeShape('T1-10','stirrup',[135,0,-135],[180,500,180]),
+  makeShape('T1-11','stirrup',[135,0,-90,135],[170,420,260,170]),
+  makeShape('T1-12','stirrup',[180,-90,0,90],[220,360,500,180]),
+  makeShape('T1-13','stirrup',[180,-90,0,135],[220,360,500,180]),
+  makeShape('T1-14','stirrup',[180,-90,0,90,180],[180,360,500,360,180]),
+  makeShape('T1-15','stirrup',[180,-90,0,90,135],[180,360,500,360,180]),
+  makeShape('T1-16','stirrup',[135,-90,0,90,-135],[180,360,500,360,180]),
+  makeShape('T1-17','stirrup',[180,-90,0,90,0],[160,360,500,360,160]),
+  makeShape('T1-18','stirrup',[0,-90,0,90,0],[160,360,500,360,160]),
+  makeShape('T1-19','stirrup',[45,-90,0,90,-45],[180,360,500,360,180]),
+  makeShape('T1-20','stirrup',[135,-90,0,90,-45],[180,360,500,360,180]),
+  makeShape('T1-21','stirrup',[180,-90,0,90,180,-90],[150,300,500,300,500,130]),
+  makeShape('T1-22','stirrup',[180,-90,0,90,180,-45],[150,300,500,300,500,160]),
+  makeShape('T1-23','stirrup',[135,-90,0,90,180,-45],[160,300,500,300,500,160]),
+  makeShape('T1-24','stirrup',[-30,90,0,-90,-30],[180,220,130,220,180]),
+  { id:'T1-25', name:'T1-25', tab:'stirrup', fields:['A','B','R'], type:'circleRadial', sample:{A:180,B:1571,R:250} },
+  { id:'T1-26', name:'T1-26', tab:'stirrup', fields:['A','B','R'], type:'semicircle', sample:{A:110,B:110,R:250} },
   { id:'CUSTOM', name:'사용자 형상 만들기', tab:'both', free:true, maxSegments:7,
     sample:{segCount:3,A:160,angleA:45,B:500,angleB:0,C:160,angleC:-45} },
 ];
@@ -728,6 +728,12 @@ document.getElementById('file-input').addEventListener('change', function(e){
 
 /* ===================== 철근 형상 다이얼로그 ===================== */
 function computeShapeGeometry(preset, dims){
+  if(preset.type==='circleRadial'){
+    const R = Number(dims.R)||0;
+    const radial = Number(dims.A)||0;
+    const circumference = Number(dims.B)||0;
+    return { isCircle:true, R:R, radial:radial, circumference:circumference, circleRadial:true, total:Math.round(radial+circumference) };
+  }
   if(preset.type==='circle'){
     const R = Number(dims.R)||0;
     const arc = dims.arcAngle!=null && dims.arcAngle!=='' ? Number(dims.arcAngle) : 360;
@@ -735,9 +741,8 @@ function computeShapeGeometry(preset, dims){
   }
   if(preset.type==='semicircle'){
     const R = Number(dims.R)||0;
-    const arc = dims.arcAngle!=null && dims.arcAngle!=='' ? Number(dims.arcAngle) : 180;
     const legs = (Number(dims.A)||0) + (Number(dims.B)||0);
-    return { isCircle:true, R:R, half:true, arcAngle:arc, total: Math.round(R*(arc*Math.PI/180) + legs) };
+    return { isCircle:true, R:R, half:true, arcAngle:180, total: Math.round(Math.PI*R + legs) };
   }
   if(preset.free){
     const letters = ['A','B','C','D','E','F','G'];
@@ -781,14 +786,24 @@ function renderShapeSVG(preset, dims, w, h, showLabels){
   if(geo.isCircle){
     const cx=w/2, cy=h/2;
     const rr = Math.max(8, Math.min(w,h)/2 - pad);
-    const rLabel = showLabels ? `<text x="${cx}" y="${cy+4}" font-size="${fontSize}" text-anchor="middle" fill="#2563eb" font-weight="700">R=${fmt(geo.R)}</text>` : '';
-    if(geo.half){
-      const arcLabel = showLabels ? `<text x="${cx}" y="${cy-rr-6}" font-size="${fontSize}" text-anchor="middle" fill="#dc2626" font-weight="700">${fmt(geo.arcAngle)}°</text>` : '';
-      const legLabels = showLabels ? `<text x="${cx-8}" y="${cy-rr/2}" font-size="${fontSize}" text-anchor="end" fill="#2563eb">A</text><text x="${cx-8}" y="${cy+rr/2}" font-size="${fontSize}" text-anchor="end" fill="#2563eb">B</text>` : '';
+    const rLabel = showLabels ? `<text x="${cx}" y="${cy+4}" font-size="${fontSize}" text-anchor="middle" fill="#1f2937" font-weight="700">R=${showLabels==='codes' ? '' : fmt(geo.R)}</text>` : '';
+    if(geo.circleRadial){
+      const radialEnd = cy-rr+Math.min(rr*0.55, Math.max(rr*0.25, rr*(geo.radial/Math.max(geo.R,1))*0.45));
+      const labels = showLabels ? `<text x="${cx-10}" y="${(cy-rr+radialEnd)/2+fontSize/3}" font-size="${fontSize}" text-anchor="end" fill="#111827">A</text><text x="${cx+rr-10}" y="${cy+fontSize/3}" font-size="${fontSize}" text-anchor="end" fill="#111827">B</text>` : '';
       return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
-        <path d="M ${cx} ${cy-rr} L ${cx} ${cy+rr} A ${rr} ${rr} 0 0 0 ${cx} ${cy-rr}" fill="none" stroke="#1f2430" stroke-width="${strokeW}" stroke-linecap="round"/>
+        <circle cx="${cx}" cy="${cy}" r="${rr}" fill="none" stroke="#1f2430" stroke-width="${strokeW}"/>
+        <line x1="${cx}" y1="${cy-rr}" x2="${cx}" y2="${radialEnd}" stroke="#1f2430" stroke-width="${strokeW}" stroke-linecap="square"/>
+        ${labels}${rLabel}
+      </svg>`;
+    }
+    if(geo.half){
+      const gap = rr*0.34;
+      const legLabels = showLabels ? `<text x="${cx-8}" y="${cy-rr*0.55}" font-size="${fontSize}" text-anchor="end" fill="#111827">A</text><text x="${cx-8}" y="${cy+rr*0.62}" font-size="${fontSize}" text-anchor="end" fill="#111827">B</text>` : '';
+      return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
+        <path d="M ${cx} ${cy-rr} A ${rr} ${rr} 0 0 1 ${cx} ${cy+rr}" fill="none" stroke="#1f2430" stroke-width="${strokeW}" stroke-linecap="round"/>
+        <line x1="${cx}" y1="${cy-rr}" x2="${cx}" y2="${cy-gap}" stroke="#1f2430" stroke-width="${strokeW}"/>
+        <line x1="${cx}" y1="${cy+gap}" x2="${cx}" y2="${cy+rr}" stroke="#1f2430" stroke-width="${strokeW}"/>
         ${rLabel}
-        ${arcLabel}
         ${legLabels}
       </svg>`;
     }
