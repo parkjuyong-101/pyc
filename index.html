@@ -702,7 +702,11 @@ function restoreTableCursor(focusCell){
   if(!tableCursor.active) return;
   const rows = tableCells();
   rows.flat().forEach(td=>td.tabIndex=-1);
-  if(rows.length) setTableCursor(tableCursor.row, tableCursor.col, focusCell);
+  if(rows.length){
+    const selectedIndex = rows.findIndex(cells=>cells[0]?.closest('tr')?.getAttribute('data-row-id')===ui.selectedRowId);
+    const row = selectedIndex>=0 ? selectedIndex : tableCursor.row;
+    setTableCursor(row, tableCursor.col, focusCell);
+  }
 }
 
 function editTableCell(td){
@@ -831,13 +835,13 @@ document.getElementById('btn-row-up').onclick = ()=>{
   const v = getActiveVoucher();
   if(!v || !ui.selectedRowId) return;
   const i = v.rows.findIndex(r=>r.id===ui.selectedRowId);
-  if(i>0){ [v.rows[i-1],v.rows[i]]=[v.rows[i],v.rows[i-1]]; renderTable(); autosave(); }
+  if(i>0){ [v.rows[i-1],v.rows[i]]=[v.rows[i],v.rows[i-1]]; renderTable(); requestAnimationFrame(()=>restoreTableCursor(true)); autosave(); }
 };
 document.getElementById('btn-row-down').onclick = ()=>{
   const v = getActiveVoucher();
   if(!v || !ui.selectedRowId) return;
   const i = v.rows.findIndex(r=>r.id===ui.selectedRowId);
-  if(i>=0 && i<v.rows.length-1){ [v.rows[i+1],v.rows[i]]=[v.rows[i],v.rows[i+1]]; renderTable(); autosave(); }
+  if(i>=0 && i<v.rows.length-1){ [v.rows[i+1],v.rows[i]]=[v.rows[i],v.rows[i+1]]; renderTable(); requestAnimationFrame(()=>restoreTableCursor(true)); autosave(); }
 };
 
 /* ===================== 전표 추가/삭제 ===================== */
