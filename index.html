@@ -126,6 +126,16 @@
     #print-modal .btns{display:none;}
   }
   .icon-btn{cursor:pointer;color:var(--danger);font-weight:700;}
+  .tour-highlight{position:relative!important;z-index:2001!important;border-radius:5px!important;box-shadow:0 0 0 5px #facc15,0 0 0 9999px rgba(15,23,42,.68)!important;}
+  #tour-tooltip{position:fixed;z-index:2002;width:330px;background:#fff;border:2px solid #facc15;border-radius:10px;box-shadow:0 12px 35px rgba(0,0,0,.35);padding:16px;}
+  #tour-tooltip.hidden{display:none;}
+  #tour-step{font-size:12px;color:#64748b;font-weight:700;margin-bottom:5px;}
+  #tour-title{font-size:17px;font-weight:800;color:#111827;margin-bottom:7px;}
+  #tour-text{font-size:13px;line-height:1.55;color:#374151;word-break:keep-all;}
+  #tour-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px;margin-top:14px;}
+  #tour-actions button{border:1px solid #cbd5e1;background:#fff;border-radius:5px;padding:7px 12px;cursor:pointer;font-family:inherit;}
+  #tour-actions button.primary{background:#2563eb;border-color:#2563eb;color:#fff;font-weight:700;}
+  #tour-skip{margin-right:auto!important;color:#64748b;}
   ::-webkit-scrollbar{width:10px;height:10px;}
   ::-webkit-scrollbar-thumb{background:#c3c8d0;border-radius:5px;}
 </style>
@@ -146,6 +156,7 @@
     <div class="sep"></div>
     <button id="btn-anchor">📐 정착길이 설정</button>
     <button id="btn-print">🖨 인쇄 미리보기</button>
+    <button id="btn-help">❓ 사용 안내</button>
     <span class="proj-name" id="proj-name-label">(새 프로젝트)</span>
   </div>
   <div id="main">
@@ -281,6 +292,17 @@
 </div>
 
 <input type="file" id="file-input" accept=".json" style="display:none;">
+
+<div id="tour-tooltip" class="hidden" role="dialog" aria-live="polite">
+  <div id="tour-step"></div>
+  <div id="tour-title"></div>
+  <div id="tour-text"></div>
+  <div id="tour-actions">
+    <button id="tour-skip">건너뛰기</button>
+    <button id="tour-prev">이전</button>
+    <button id="tour-next" class="primary">다음</button>
+  </div>
+</div>
 
 <script>
 /* ===================== 데이터 / 상수 ===================== */
@@ -1168,6 +1190,66 @@ document.getElementById('btn-print').onclick = ()=>{
 document.getElementById('pm-close').onclick = ()=> document.getElementById('print-modal').classList.add('hidden');
 document.getElementById('pm-print').onclick = ()=> window.print();
 
+/* ===================== 처음 사용자 안내 ===================== */
+const TOUR_STEPS = [
+  {selector:'#btn-new', title:'1. 새 프로젝트 만들기', text:'처음 작업할 때 여기를 눌러 현장명과 층수를 입력하세요.'},
+  {selector:'.tree-floor', title:'2. 작업할 층 선택', text:'왼쪽 프로젝트 구조에서 철근을 입력할 층을 먼저 선택하세요.'},
+  {selector:'#member-select', title:'3. 부재 선택', text:'기초, 기둥, 벽체, 보, 슬래브 등 작업할 부재를 선택하세요.'},
+  {selector:'#btn-voucher-add', title:'4. 전표 추가', text:'선택한 층과 부재에 새 전표를 만든 뒤 전표 이름을 입력하세요.'},
+  {selector:'#btn-row-add', title:'5. 철근 추가', text:'전표를 선택한 다음 철근 추가를 눌러 입력할 줄을 만드세요.'},
+  {selector:'table.rebar-table th:nth-child(6)', title:'6. 철근 형상 입력', text:'추가된 줄의 형상 칸을 클릭하면 일반철근과 보조철근 형상을 선택하고 치수를 입력할 수 있습니다.'},
+  {selector:'#btn-save', title:'7. 프로젝트 저장', text:'작업 중간과 완료 후 저장을 누르세요. 프로그램을 닫을 때도 저장 여부를 다시 묻습니다.'}
+];
+let tourIndex = -1;
+let tourTarget = null;
+
+function positionTourTooltip(target){
+  const tip = document.getElementById('tour-tooltip');
+  const rect = target.getBoundingClientRect();
+  const margin = 14;
+  let left = Math.min(Math.max(margin, rect.left), window.innerWidth-tip.offsetWidth-margin);
+  let top = rect.bottom + margin;
+  if(top + tip.offsetHeight > window.innerHeight-margin) top = Math.max(margin, rect.top-tip.offsetHeight-margin);
+  tip.style.left = left+'px';
+  tip.style.top = top+'px';
+}
+
+function showTourStep(index){
+  if(tourTarget) tourTarget.classList.remove('tour-highlight');
+  tourIndex = Math.min(Math.max(index,0),TOUR_STEPS.length-1);
+  const step = TOUR_STEPS[tourIndex];
+  const target = document.querySelector(step.selector);
+  if(!target){
+    if(tourIndex<TOUR_STEPS.length-1) showTourStep(tourIndex+1);
+    else finishTour();
+    return;
+  }
+  tourTarget = target;
+  target.scrollIntoView({block:'center',inline:'center'});
+  target.classList.add('tour-highlight');
+  const tip = document.getElementById('tour-tooltip');
+  document.getElementById('tour-step').textContent = `${tourIndex+1} / ${TOUR_STEPS.length}`;
+  document.getElementById('tour-title').textContent = step.title;
+  document.getElementById('tour-text').textContent = step.text;
+  document.getElementById('tour-prev').style.visibility = tourIndex===0 ? 'hidden' : 'visible';
+  document.getElementById('tour-next').textContent = tourIndex===TOUR_STEPS.length-1 ? '완료' : '다음';
+  tip.classList.remove('hidden');
+  requestAnimationFrame(()=>positionTourTooltip(target));
+}
+
+function startTour(){ showTourStep(0); }
+function finishTour(){
+  if(tourTarget) tourTarget.classList.remove('tour-highlight');
+  tourTarget=null; tourIndex=-1;
+  document.getElementById('tour-tooltip').classList.add('hidden');
+  try{ localStorage.setItem('rebar_tour_seen','1'); }catch(e){}
+}
+document.getElementById('tour-next').onclick=()=> tourIndex>=TOUR_STEPS.length-1 ? finishTour() : showTourStep(tourIndex+1);
+document.getElementById('tour-prev').onclick=()=> showTourStep(tourIndex-1);
+document.getElementById('tour-skip').onclick=finishTour;
+document.getElementById('btn-help').onclick=startTour;
+window.addEventListener('resize',()=>{ if(tourTarget) positionTourTooltip(tourTarget); });
+
 /* ===================== 초기화 ===================== */
 function init(){
   const saved = loadAutosave();
@@ -1179,6 +1261,9 @@ function init(){
   renderAll();
 }
 init();
+try{
+  if(!localStorage.getItem('rebar_tour_seen')) setTimeout(startTour,350);
+}catch(e){ setTimeout(startTour,350); }
 window.addEventListener('pywebviewready', ()=>{
   if(window.pywebview && window.pywebview.api){
     window.pywebview.api.update_state(JSON.stringify(state), false).catch(()=>{});
