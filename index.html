@@ -441,6 +441,7 @@ const SHAPE_LABEL_POSITIONS = {
 let state = null;
 let ui = { activeZoneId:null, activeFloor:null, activeMember:null, activeVoucherId:null, selectedRowId:null, currentFilePath:null, shapeTargetRowId:null, shapeSelectedPreset:null, shapeDims:{} };
 let tableCursor = { row:0, col:0, active:false };
+let tableEditor = null;
 
 function uid(){ return Math.random().toString(36).slice(2,10); }
 
@@ -712,6 +713,7 @@ function editTableCell(td){
   }
   const editor = td.querySelector('input,select,button');
   if(!editor) return;
+  tableEditor = editor;
   td.classList.add('grid-editing');
   editor.focus();
   if(editor.tagName==='INPUT') editor.select();
@@ -725,8 +727,17 @@ document.getElementById('rebar-tbody').addEventListener('focusin', function(e){
   if(!td) return;
   const tr = td.closest('tr');
   setTableCursor(Array.from(this.rows).indexOf(tr), td.cellIndex, false);
-  if(e.target.matches('input,select,button')) td.classList.add('grid-editing');
+  if(e.target===tableEditor) td.classList.add('grid-editing');
 });
+
+document.getElementById('rebar-tbody').addEventListener('mousedown', function(e){
+  const editor = e.target.closest('input,select,button');
+  if(!editor || editor===tableEditor) return;
+  const td = editor.closest('td');
+  const tr = td.closest('tr');
+  e.preventDefault();
+  setTableCursor(Array.from(this.rows).indexOf(tr), td.cellIndex, true);
+}, true);
 
 document.getElementById('rebar-tbody').addEventListener('keydown', function(e){
   if(e.isComposing || e.keyCode===229) return;
@@ -737,9 +748,11 @@ document.getElementById('rebar-tbody').addEventListener('keydown', function(e){
     if(e.key==='Enter'){
       e.preventDefault(); e.stopPropagation();
       editor.blur();
+      tableEditor = null;
       requestAnimationFrame(()=>restoreTableCursor(true));
     } else if(e.key==='Escape'){
       e.preventDefault(); e.stopPropagation();
+      tableEditor = null;
       td.classList.remove('grid-editing');
       td.focus();
     }
@@ -773,6 +786,7 @@ document.getElementById('rebar-tbody').addEventListener('click', function(e){
 });
 document.getElementById('rebar-tbody').addEventListener('change', function(e){
   const el = e.target;
+  const wasKeyboardEditing = el===tableEditor;
   const field = el.getAttribute('data-field');
   if(!field) return;
   const tr = el.closest('tr');
@@ -787,6 +801,10 @@ document.getElementById('rebar-tbody').addEventListener('change', function(e){
     row[field] = el.value;
   }
   renderTable();
+  if(wasKeyboardEditing){
+    tableEditor = null;
+    requestAnimationFrame(()=>restoreTableCursor(true));
+  }
   autosave();
 });
 
@@ -1161,7 +1179,13 @@ function renderShapeGallery(){
 document.getElementById('shape-gallery').addEventListener('keydown', function(e){
   const item = e.target.closest('.shape-thumb');
   if(!item) return;
-  if(e.key==='Enter' || e.key===' '){
+  if(e.key==='Enter'){
+    e.preventDefault(); e.stopPropagation();
+    if(item.classList.contains('selected')) document.getElementById('sm-ok').click();
+    else item.click();
+    return;
+  }
+  if(e.key===' '){
     e.preventDefault(); e.stopPropagation();
     item.click();
     return;
