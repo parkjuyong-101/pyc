@@ -90,6 +90,9 @@
   .shape-thumb.shape-toggle{background:#fffbdc;border-color:#a79d67;display:flex;align-items:center;justify-content:center;min-height:102px;}
   .shape-thumb.shape-toggle:hover{background:#15803d;border-color:#15803d;}
   .shape-thumb.shape-toggle .toggle-label{color:#111827;font-size:15px;font-weight:700;text-align:center;}
+  .shape-thumb.shape-custom{display:flex;align-items:center;justify-content:center;border:2px dashed #16a34a;background:#f0fdf4;}
+  .shape-thumb.shape-custom:hover{background:#dcfce7;border-color:#15803d;}
+  .shape-thumb.shape-custom .custom-shape-label{color:#166534;font-size:14px;font-weight:700;line-height:1.5;}
   #shape-right{order:1;width:270px;display:flex;flex-direction:column;gap:8px;}
   #shape-preview-box{border:1px solid var(--border);border-radius:3px;background:#fff;height:155px;display:flex;align-items:center;justify-content:center;}
   .shape-code-field{display:grid;grid-template-columns:70px 1fr;align-items:center;gap:6px;}
@@ -290,11 +293,11 @@ const USAGES = ['None','주근','띠철근','배력근','온도철근','기타']
 const ALL_FIELD_KEYS = ['A','B','C','D','E','F','G','angleX','angleY','angleZ','R','arcAngle'];
 const FIELD_LABELS = { A:'A',B:'B',C:'C',D:'D',E:'E',F:'F',G:'G', angleX:'각도 X', angleY:'각도 Y', angleZ:'각도 Z', R:'반지름', arcAngle:'호 각도' };
 
-function makeShape(id, tab, angles, angleSlots=[]){
+function makeShape(id, tab, angles, lengths=null, angleSlots=[]){
   const keys = ['A','B','C','D','E','F','G'].slice(0, angles.length);
   const fields = [...keys, ...angleSlots.map((_,i)=>['angleX','angleY','angleZ'][i])];
   const sample = {};
-  keys.forEach((k,i)=> sample[k] = i===0 ? 500 : 180);
+  keys.forEach((k,i)=> sample[k] = lengths && lengths[i]!=null ? lengths[i] : (i===0 ? 500 : 180));
   angleSlots.forEach((slot,i)=>{
     const previousAngle = slot>0 ? angles[slot-1] : 0;
     let bendAngle = angles[slot] - previousAngle;
@@ -313,49 +316,51 @@ function makeShape(id, tab, angles, angleSlots=[]){
 const SHAPE_PRESETS = [
   // 일반철근: 1.png, 왼쪽 위부터 행 우선 순서(23종)
   {...makeShape('T1-00','main',[0]), sample:{A:5000}},
-  makeShape('G1-01','main',[0,90]),
-  makeShape('G1-02','main',[0,45],[1]),
-  makeShape('G1-03','main',[0,90,0]),
-  makeShape('G1-04','main',[0,90,180]),
-  makeShape('G1-05','main',[0,45,90],[1]),
-  makeShape('G1-06','main',[0,45,0],[1]),
-  makeShape('G1-07','main',[90,0,45],[2]),
-  makeShape('G1-08','main',[90,0,-45],[2]),
-  makeShape('G1-09','main',[45,0,45],[0,2]),
-  makeShape('G1-10','main',[45,0,-45],[0,2]),
-  makeShape('G1-11','main',[90,0,-90,180]),
-  makeShape('G1-12','main',[90,0,-45,0],[2]),
-  makeShape('G1-13','main',[90,0,45,0],[2]),
-  makeShape('G1-14','main',[90,0,-45,0,45],[2,4]),
-  makeShape('G1-15','main',[90,0,-45,0,-45,0],[2,4]),
-  makeShape('G1-16','main',[90,0,-45,0,45,0],[2,4]),
-  makeShape('G1-17','main',[45,0,-45,0,45],[0,2]),
-  makeShape('G1-18','main',[90,0,-90,0]),
-  makeShape('G1-19','main',[45,0,45,0],[0]),
-  makeShape('G1-20','main',[90,0,-45,0,-45,0],[2,4]),
-  makeShape('G1-21','main',[90,0,-90,0]),
-  makeShape('G1-22','main',[90,0,-90,0,-90,0]),
+  makeShape('G1-01','main',[0,90],[500,180]),
+  makeShape('G1-02','main',[0,45],[500,180],[1]),
+  makeShape('G1-03','main',[0,90,0],[420,180,180]),
+  makeShape('G1-04','main',[0,90,180],[420,180,180]),
+  makeShape('G1-05','main',[0,45,90],[180,140,180],[1]),
+  makeShape('G1-06','main',[0,45,0],[180,140,180],[1]),
+  makeShape('G1-07','main',[90,0,45],[220,380,150],[2]),
+  makeShape('G1-08','main',[90,0,-45],[220,380,150],[2]),
+  makeShape('G1-09','main',[45,0,45],[160,500,160],[0,2]),
+  makeShape('G1-10','main',[45,0,-45],[160,500,160],[0,2]),
+  makeShape('G1-11','main',[90,0,-90,180],[250,360,250,180]),
+  makeShape('G1-12','main',[90,0,-45,0],[250,350,140,180],[2]),
+  makeShape('G1-13','main',[90,0,45,0],[250,350,140,180],[2]),
+  makeShape('G1-14','main',[90,0,-45,0,45],[250,280,130,220,130],[2,4]),
+  makeShape('G1-15','main',[90,0,-45,0,-45,0],[250,230,120,200,120,230],[2,4]),
+  makeShape('G1-16','main',[90,0,-45,0,45,0],[250,230,120,200,120,230],[2,4]),
+  makeShape('G1-17','main',[45,0,-45,0,45],[160,360,140,220,140],[0,2]),
+  makeShape('G1-18','main',[90,0,-90,0],[250,240,180,180]),
+  makeShape('G1-19','main',[45,0,45,0],[160,300,120,220],[0]),
+  makeShape('G1-20','main',[90,0,-45,0,-45,0],[250,220,110,180,110,220],[2,4]),
+  makeShape('G1-21','main',[90,0,-90,0],[250,200,160,180]),
+  makeShape('G1-22','main',[90,0,-90,0,-90,0],[250,180,160,180,160,180]),
 
   // 보조철근: 2.png, 왼쪽 위부터 행 우선 순서(19종). T2-02가 캡처의 선택 형상(110/500/110).
-  {...makeShape('T1-08','stirrup',[90,0,-90]), sample:{A:200,B:500,C:200}},
-  {...makeShape('T1-09','stirrup',[90,0,45]), sample:{A:110,B:500,C:110}},
-  makeShape('T1-10','stirrup',[45,0,-45]),
-  makeShape('T1-11','stirrup',[-45,0,-90,135]),
-  makeShape('T1-12','stirrup',[0,-90,0,90]),
-  makeShape('T1-13','stirrup',[0,-90,0,-45]),
-  makeShape('T1-14','stirrup',[0,-90,0,90,0]),
-  makeShape('T1-15','stirrup',[0,-90,0,90,45]),
-  makeShape('T1-16','stirrup',[-45,-90,0,90,45]),
-  makeShape('T1-17','stirrup',[45,-90,0,90,-45]),
-  makeShape('T1-18','stirrup',[0,-90,0,90,0]),
-  makeShape('T1-19','stirrup',[-45,-90,0,90,45]),
-  makeShape('T1-20','stirrup',[0,-90,0,90,0,-90]),
-  makeShape('T1-21','stirrup',[-45,-90,0,90,45,0]),
-  makeShape('T1-22','stirrup',[-45,-45,-90,0,90,45]),
-  makeShape('T1-23','stirrup',[-45,-45,-90,0,90]),
-  makeShape('T1-24','stirrup',[45,90,0,-90,-45]),
+  makeShape('T1-08','stirrup',[90,0,-90],[200,500,200]),
+  makeShape('T1-09','stirrup',[90,0,45],[110,500,110]),
+  makeShape('T1-10','stirrup',[45,0,-45],[160,500,160]),
+  makeShape('T1-11','stirrup',[-45,0,-90,135],[160,420,220,160]),
+  makeShape('T1-12','stirrup',[0,-90,0,90],[500,250,180,220]),
+  makeShape('T1-13','stirrup',[0,-90,0,-45],[500,250,180,180]),
+  makeShape('T1-14','stirrup',[0,-90,0,90,0],[180,220,500,220,180]),
+  makeShape('T1-15','stirrup',[0,-90,0,90,45],[180,220,500,220,160]),
+  makeShape('T1-16','stirrup',[-45,-90,0,90,45],[160,180,500,180,160]),
+  makeShape('T1-17','stirrup',[45,-90,0,90,-45],[160,180,500,180,160]),
+  makeShape('T1-18','stirrup',[0,-90,0,90,0],[180,220,500,220,180]),
+  makeShape('T1-19','stirrup',[-45,-90,0,90,45],[160,180,500,180,160]),
+  makeShape('T1-20','stirrup',[0,-90,0,90,0,-90],[180,200,500,200,180,120]),
+  makeShape('T1-21','stirrup',[-45,-90,0,90,45,0],[160,180,500,180,160,140]),
+  makeShape('T1-22','stirrup',[-45,-45,-90,0,90,45],[140,140,180,500,180,140]),
+  makeShape('T1-23','stirrup',[-45,-45,-90,0,90],[140,140,180,500,180]),
+  makeShape('T1-24','stirrup',[45,90,0,-90,-45],[160,180,500,180,160]),
   { id:'T1-25', name:'T1-25', tab:'stirrup', fields:['R','arcAngle'], type:'circle', sample:{R:250,arcAngle:360} },
   { id:'T1-26', name:'T1-26', tab:'stirrup', fields:['A','B','R','arcAngle'], type:'semicircle', sample:{A:110,B:110,R:250,arcAngle:180} },
+  { id:'CUSTOM', name:'사용자 형상 만들기', tab:'both', free:true, maxSegments:7,
+    sample:{segCount:3,A:160,angleA:45,B:500,angleB:0,C:160,angleC:-45} },
 ];
 
 let state = null;
@@ -882,11 +887,13 @@ function renderShapeGallery(){
   gal.appendChild(toggleDiv);
   SHAPE_PRESETS.filter(p=> p.tab===ui.shapeActiveTab || p.tab==='both').forEach(p=>{
     const div = document.createElement('div');
-    div.className = 'shape-thumb' + (p.id===ui.shapeSelectedPreset ? ' selected':'');
+    div.className = 'shape-thumb' + (p.free ? ' shape-custom' : '') + (p.id===ui.shapeSelectedPreset ? ' selected':'');
     div.setAttribute('role','button');
     div.setAttribute('tabindex','0');
     div.setAttribute('aria-label', p.id);
-    div.innerHTML = renderShapeSVG(p, p.sample, 210, 100, 'codes');
+    div.innerHTML = p.free
+      ? '<div class="custom-shape-label">＋<br>사용자 형상 만들기</div>'
+      : renderShapeSVG(p, p.sample, 210, 100, 'codes');
     div.onclick = ()=>{
       ui.shapeSelectedPreset = p.id;
       ui.shapeDims = Object.assign({}, p.sample);
