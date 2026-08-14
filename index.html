@@ -58,6 +58,8 @@
   table.rebar-table td{border:1px solid var(--border);padding:2px 4px;text-align:center;white-space:nowrap;}
   table.rebar-table tr:nth-child(even){background:var(--row-alt);}
   table.rebar-table tr.selected{background:var(--accent-light);}
+  table.rebar-table td.grid-active{position:relative;outline:3px solid #2563eb;outline-offset:-3px;background:#eff6ff;z-index:2;}
+  table.rebar-table td.grid-editing{outline-color:#f59e0b;background:#fffbeb;}
   table.rebar-table input, table.rebar-table select{width:100%;border:1px solid transparent;background:transparent;text-align:center;font-size:12.5px;padding:4px 2px;border-radius:3px;}
   table.rebar-table input:focus, table.rebar-table select:focus{border-color:var(--accent);background:#fff;outline:none;}
   table.rebar-table .shape-cell{cursor:pointer;color:var(--accent);min-width:190px;padding:4px 6px;}
@@ -85,6 +87,7 @@
   #shape-gallery{order:2;width:920px;display:grid;grid-template-columns:repeat(5,1fr);gap:7px;max-height:570px;overflow:auto;padding:4px;align-content:start;}
   .shape-thumb{border:1px solid #cfd4da;border-radius:0;padding:4px;cursor:pointer;text-align:center;background:#fff;min-height:102px;}
   .shape-thumb:hover{border-color:var(--accent);}
+  .shape-thumb:focus{outline:3px solid #2563eb;outline-offset:2px;}
   .shape-thumb.selected{border:4px solid #0645ff;background:#fff;padding:1px;}
   .shape-thumb svg{width:100%;height:78px;}
   .shape-thumb.shape-toggle{background:#fffbdc;border-color:#a79d67;display:flex;align-items:center;justify-content:center;min-height:102px;}
@@ -437,6 +440,7 @@ const SHAPE_LABEL_POSITIONS = {
 
 let state = null;
 let ui = { activeZoneId:null, activeFloor:null, activeMember:null, activeVoucherId:null, selectedRowId:null, currentFilePath:null, shapeTargetRowId:null, shapeSelectedPreset:null, shapeDims:{} };
+let tableCursor = { row:0, col:0 };
 
 function uid(){ return Math.random().toString(36).slice(2,10); }
 
@@ -658,6 +662,7 @@ function renderTable(){
     });
   }
   document.getElementById('total-weight').textContent = '총 중량: ' + fmt(totalWeight,2) + ' kg';
+  restoreTableCursor(false);
 }
 
 function selectHTML(options, current, field){
@@ -665,9 +670,95 @@ function selectHTML(options, current, field){
 }
 
 /* ===================== 테이블 이벤트 (위임) ===================== */
+function tableCells(){
+  return Array.from(document.querySelectorAll('#rebar-tbody tr')).map(tr=>Array.from(tr.cells));
+}
+
+function setTableCursor(row, col, focusCell=true){
+  const rows = tableCells();
+  if(!rows.length) return;
+  row = Math.max(0, Math.min(row, rows.length-1));
+  col = Math.max(0, Math.min(col, rows[row].length-1));
+  tableCursor = {row, col};
+  document.querySelectorAll('#rebar-tbody td.grid-active, #rebar-tbody td.grid-editing').forEach(td=>{
+    td.classList.remove('grid-active','grid-editing');
+    td.tabIndex = -1;
+  });
+  const td = rows[row][col];
+  td.classList.add('grid-active');
+  td.tabIndex = 0;
+  const tr = td.closest('tr');
+  ui.selectedRowId = tr.getAttribute('data-row-id');
+  tr.parentElement.querySelectorAll('tr.selected').forEach(el=>el.classList.remove('selected'));
+  tr.classList.add('selected');
+  if(focusCell){
+    td.focus({preventScroll:true});
+    td.scrollIntoView({block:'nearest',inline:'nearest'});
+  }
+}
+
+function restoreTableCursor(focusCell){
+  const rows = tableCells();
+  rows.flat().forEach(td=>td.tabIndex=-1);
+  if(rows.length) setTableCursor(tableCursor.row, tableCursor.col, focusCell);
+}
+
+function editTableCell(td){
+  const tr = td.closest('tr');
+  if(td.classList.contains('shape-cell')){
+    openShapeModal(tr.getAttribute('data-row-id'));
+    return;
+  }
+  const editor = td.querySelector('input,select,button');
+  if(!editor) return;
+  td.classList.add('grid-editing');
+  editor.focus();
+  if(editor.tagName==='INPUT') editor.select();
+  else if(editor.tagName==='SELECT' && typeof editor.showPicker==='function'){
+    try{ editor.showPicker(); }catch(e){}
+  }
+}
+
+document.getElementById('rebar-tbody').addEventListener('focusin', function(e){
+  const td = e.target.closest('td');
+  if(!td) return;
+  const tr = td.closest('tr');
+  setTableCursor(Array.from(this.rows).indexOf(tr), td.cellIndex, false);
+  if(e.target.matches('input,select,button')) td.classList.add('grid-editing');
+});
+
+document.getElementById('rebar-tbody').addEventListener('keydown', function(e){
+  if(e.isComposing || e.keyCode===229) return;
+  const td = e.target.closest('td');
+  if(!td) return;
+  const editor = e.target.matches('input,select,button') ? e.target : null;
+  if(editor){
+    if(e.key==='Enter'){
+      e.preventDefault(); e.stopPropagation();
+      editor.blur();
+      requestAnimationFrame(()=>restoreTableCursor(true));
+    } else if(e.key==='Escape'){
+      e.preventDefault(); e.stopPropagation();
+      td.classList.remove('grid-editing');
+      td.focus();
+    }
+    return;
+  }
+  const moves = {ArrowLeft:[0,-1],ArrowRight:[0,1],ArrowUp:[-1,0],ArrowDown:[1,0]};
+  if(moves[e.key]){
+    e.preventDefault(); e.stopPropagation();
+    setTableCursor(tableCursor.row+moves[e.key][0], tableCursor.col+moves[e.key][1], true);
+  } else if(e.key==='Enter'){
+    e.preventDefault(); e.stopPropagation();
+    editTableCell(td);
+  }
+});
+
 document.getElementById('rebar-tbody').addEventListener('click', function(e){
   const tr = e.target.closest('tr');
   if(!tr) return;
+  const td = e.target.closest('td');
+  if(td) setTableCursor(Array.from(this.rows).indexOf(tr), td.cellIndex, false);
   const rowId = tr.getAttribute('data-row-id');
   const cell = e.target.closest('td.shape-cell');
   if(cell){
@@ -1026,6 +1117,10 @@ function openShapeModal(rowId){
   renderShapeDimsForm();
   updateShapePreview();
   document.getElementById('shape-modal').classList.remove('hidden');
+  requestAnimationFrame(()=>{
+    const selected = document.querySelector('#shape-gallery .shape-thumb.selected');
+    (selected || document.querySelector('#shape-gallery .shape-thumb'))?.focus();
+  });
 }
 
 function renderShapeGallery(){
@@ -1040,6 +1135,7 @@ function renderShapeGallery(){
   toggleDiv.onclick = ()=>{
     ui.shapeActiveTab = ui.shapeActiveTab==='main' ? 'stirrup' : 'main';
     renderShapeGallery();
+    requestAnimationFrame(()=>document.querySelector('#shape-gallery .shape-thumb')?.focus());
   };
   gal.appendChild(toggleDiv);
   SHAPE_PRESETS.filter(p=> p.tab===ui.shapeActiveTab || p.tab==='both').forEach(p=>{
@@ -1055,10 +1151,28 @@ function renderShapeGallery(){
       ui.shapeSelectedPreset = p.id;
       ui.shapeDims = Object.assign({}, p.sample);
       renderShapeGallery(); renderShapeDimsForm(); updateShapePreview();
+      requestAnimationFrame(()=>document.querySelector('#shape-gallery .shape-thumb.selected')?.focus());
     };
     gal.appendChild(div);
   });
 }
+
+document.getElementById('shape-gallery').addEventListener('keydown', function(e){
+  const item = e.target.closest('.shape-thumb');
+  if(!item) return;
+  if(e.key==='Enter' || e.key===' '){
+    e.preventDefault(); e.stopPropagation();
+    item.click();
+    return;
+  }
+  const moves = {ArrowLeft:-1,ArrowRight:1,ArrowUp:-5,ArrowDown:5};
+  if(!(e.key in moves)) return;
+  e.preventDefault(); e.stopPropagation();
+  const items = Array.from(this.querySelectorAll('.shape-thumb'));
+  const next = Math.max(0, Math.min(items.length-1, items.indexOf(item)+moves[e.key]));
+  items[next].focus();
+  items[next].scrollIntoView({block:'nearest'});
+});
 
 function renderShapeDimsForm(){
   const preset = SHAPE_PRESETS.find(p=>p.id===ui.shapeSelectedPreset);
