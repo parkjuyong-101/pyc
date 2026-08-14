@@ -212,7 +212,7 @@
               <th style="width:60px;">합계</th>
               <th style="width:70px;">정착</th>
               <th style="width:55px;">본수</th>
-              <th style="width:90px;">실중량(Ton)</th>
+              <th style="width:90px;">실중량(kg)</th>
             </tr>
           </thead>
           <tbody id="rebar-tbody"></tbody>
@@ -220,7 +220,7 @@
       </div>
       <div id="statusbar">
         <span id="voucher-status">전표: -</span>
-        <span class="total" id="total-weight">총 중량: 0.000 Ton</span>
+        <span class="total" id="total-weight">총 중량: 0.00 kg</span>
       </div>
     </div>
   </div>
@@ -675,12 +675,12 @@ function renderTable(){
         <td>${fmt(row.sum)}</td>
         <td>${fmt(row.anchor)}</td>
         <td><input data-field="pieces" type="number" min="0" value="${row.pieces||0}"></td>
-        <td>${fmt((row.weight||0)/1000,4)}</td>
+        <td>${fmt(row.weight||0,1)}</td>
       `;
       tbody.appendChild(tr);
     });
   }
-  document.getElementById('total-weight').textContent = '총 중량: ' + fmt(totalWeight/1000,3) + ' Ton';
+  document.getElementById('total-weight').textContent = '총 중량: ' + fmt(totalWeight,2) + ' kg';
   restoreTableCursor(false);
 }
 
@@ -760,6 +760,14 @@ document.getElementById('rebar-tbody').addEventListener('mousedown', function(e)
   e.preventDefault();
   setTableCursor(Array.from(this.rows).indexOf(tr), td.cellIndex, true);
 }, true);
+
+document.getElementById('rebar-tbody').addEventListener('dblclick', function(e){
+  const td = e.target.closest('td');
+  if(!td || td.classList.contains('shape-cell')) return;
+  const tr = td.closest('tr');
+  setTableCursor(Array.from(this.rows).indexOf(tr), td.cellIndex, false);
+  editTableCell(td);
+});
 
 document.getElementById('rebar-tbody').addEventListener('keydown', function(e){
   if(e.isComposing || e.keyCode===229) return;
@@ -1396,7 +1404,7 @@ document.getElementById('btn-print').onclick = ()=>{
     return `<tr>
       <td>${idx+1}</td><td>${row.name||''}</td><td>${row.dia}</td><td>${row.grade}</td><td>${row.usage}</td>
       <td>${svg}</td><td>${fmt(row.shape?row.shape.total:0)}</td><td>${fmt(row.count)}</td><td>${fmt(row.spots)}</td>
-      <td>${fmt(row.sum)}</td><td>${fmt(row.anchor)}</td><td>${fmt(row.pieces)}</td><td>${fmt((row.weight||0)/1000,4)}</td>
+      <td>${fmt(row.sum)}</td><td>${fmt(row.anchor)}</td><td>${fmt(row.pieces)}</td><td>${fmt(row.weight||0,1)}</td>
     </tr>`;
   }).join('');
   const html = `
@@ -1407,10 +1415,10 @@ document.getElementById('btn-print').onclick = ()=>{
       <tr><td class="k">전 표</td><td>${v.name}</td><td class="k">작 성 일</td><td>${new Date().toISOString().slice(0,10)}</td></tr>
     </table>
     <table class="print-table">
-      <thead><tr><th>NO</th><th>명칭</th><th>지름</th><th>강종</th><th>용도</th><th>형상</th><th>총길이</th><th>개수</th><th>개소</th><th>합계</th><th>정착</th><th>본수</th><th>실중량(Ton)</th></tr></thead>
+      <thead><tr><th>NO</th><th>명칭</th><th>지름</th><th>강종</th><th>용도</th><th>형상</th><th>총길이</th><th>개수</th><th>개소</th><th>합계</th><th>정착</th><th>본수</th><th>실중량(kg)</th></tr></thead>
       <tbody>${rowsHtml}</tbody>
     </table>
-    <div id="print-total">합 계: ${fmt(total/1000,3)} Ton</div>
+    <div id="print-total">합 계: ${fmt(total,2)} kg</div>
   `;
   document.getElementById('print-area').innerHTML = html;
   document.getElementById('print-modal').classList.remove('hidden');
