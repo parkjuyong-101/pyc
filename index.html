@@ -1267,7 +1267,10 @@ function updateShapePreview(){
   document.getElementById('shape-total').textContent = '총 길이: ' + fmt(geo.total) + ' mm';
 }
 
-document.getElementById('sm-cancel').onclick = ()=> document.getElementById('shape-modal').classList.add('hidden');
+document.getElementById('sm-cancel').onclick = ()=>{
+  document.getElementById('shape-modal').classList.add('hidden');
+  requestAnimationFrame(()=>restoreTableCursor(true));
+};
 document.getElementById('sm-ok').onclick = ()=>{
   const preset = SHAPE_PRESETS.find(p=>p.id===ui.shapeSelectedPreset);
   const geo = computeShapeGeometry(preset, ui.shapeDims);
@@ -1275,7 +1278,9 @@ document.getElementById('sm-ok').onclick = ()=>{
   const row = v.rows.find(r=>r.id===ui.shapeTargetRowId);
   row.shape = { presetId: preset.id, dims: Object.assign({}, ui.shapeDims), total: geo.total };
   document.getElementById('shape-modal').classList.add('hidden');
-  renderTable(); autosave();
+  renderTable();
+  requestAnimationFrame(()=>restoreTableCursor(true));
+  autosave();
 };
 
 /* ===================== 정착길이 설정 ===================== */
