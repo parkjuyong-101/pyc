@@ -86,16 +86,19 @@
   .shape-thumb{border:2px solid var(--border);border-radius:3px;padding:4px;cursor:pointer;text-align:center;background:#fafbfc;min-height:102px;}
   .shape-thumb:hover{border-color:var(--accent);}
   .shape-thumb.selected{border-color:var(--accent);background:var(--accent-light);}
-  .shape-thumb .tname{font-size:11px;font-weight:600;color:#475569;margin-top:1px;}
   .shape-thumb svg{width:100%;height:78px;}
   .shape-thumb.shape-toggle{background:#fffbdc;border-color:#a79d67;display:flex;align-items:center;justify-content:center;min-height:102px;}
   .shape-thumb.shape-toggle:hover{background:#15803d;border-color:#15803d;}
   .shape-thumb.shape-toggle .toggle-label{color:#111827;font-size:15px;font-weight:700;text-align:center;}
   #shape-right{order:1;width:270px;display:flex;flex-direction:column;gap:8px;}
   #shape-preview-box{border:1px solid var(--border);border-radius:3px;background:#fff;height:155px;display:flex;align-items:center;justify-content:center;}
-  #shape-dims{display:grid;grid-template-columns:1fr;gap:4px;max-height:385px;overflow-y:auto;padding-right:4px;}
-  #shape-dims .field label{font-size:12px;color:var(--muted);}
-  #shape-dims .field input{width:100%;padding:6px;border:1px solid var(--border);border-radius:4px;}
+  .shape-code-field{display:grid;grid-template-columns:70px 1fr;align-items:center;gap:6px;}
+  .shape-code-field label{font-size:12px;color:var(--muted);}
+  .shape-code-field input{width:100%;padding:6px;border:1px solid var(--border);border-radius:3px;background:#f8fafc;font-weight:700;}
+  #shape-dims{display:grid;grid-template-columns:1fr;gap:3px;overflow:visible;}
+  #shape-dims .field{display:grid;grid-template-columns:70px 1fr;align-items:center;gap:6px;margin:0;}
+  #shape-dims .field label{font-size:12px;color:var(--muted);margin:0;}
+  #shape-dims .field input{width:100%;height:27px;padding:3px 6px;border:1px solid var(--border);border-radius:3px;}
   #shape-dims .field.disabled input{background:#f1f3f5;color:#aaa;}
   #shape-total{font-size:14px;font-weight:700;color:var(--accent);text-align:right;}
   #anchor-modal .modal{width:640px;}
@@ -237,6 +240,7 @@
       <div id="shape-gallery"></div>
       <div id="shape-right">
         <div id="shape-preview-box"></div>
+        <div class="shape-code-field"><label>형상코드</label><input id="shape-code-display" readonly></div>
         <div id="shape-dims"></div>
         <div id="shape-total">총 길이: 0 mm</div>
       </div>
@@ -291,7 +295,13 @@ function makeShape(id, tab, angles, angleSlots=[]){
   const fields = [...keys, ...angleSlots.map((_,i)=>['angleX','angleY','angleZ'][i])];
   const sample = {};
   keys.forEach((k,i)=> sample[k] = i===0 ? 500 : 180);
-  angleSlots.forEach((slot,i)=> sample[['angleX','angleY','angleZ'][i]] = angles[slot]);
+  angleSlots.forEach((slot,i)=>{
+    const previousAngle = slot>0 ? angles[slot-1] : 0;
+    let bendAngle = angles[slot] - previousAngle;
+    while(bendAngle>180) bendAngle-=360;
+    while(bendAngle<-180) bendAngle+=360;
+    sample[['angleX','angleY','angleZ'][i]] = bendAngle;
+  });
   const segments = keys.map((key,i)=>{
     const slotIndex = angleSlots.indexOf(i);
     return slotIndex>=0 ? {key,angleField:['angleX','angleY','angleZ'][slotIndex]} : {key,angle:angles[i]};
@@ -734,31 +744,34 @@ function computeShapeGeometry(preset, dims){
       const ang = Number(dims['angle'+k])||0;
       const rad = ang*Math.PI/180;
       const nx = fx+len*Math.cos(rad), ny = fy+len*Math.sin(rad);
-      flabels.push({mid:[(fx+nx)/2,(fy+ny)/2], val:len, key:k});
+      flabels.push({mid:[(fx+nx)/2,(fy+ny)/2], val:len, key:k, angle:ang});
       fangleLabels.push({pos:[fx,fy], val:ang, key:['X','Y','Z'][i]||''});
       fpts.push([nx,ny]);
       fx=nx; fy=ny; ftotal+=len;
     }
     return { isCircle:false, points:fpts, labels:flabels, angleLabels:fangleLabels, total: Math.round(ftotal) };
   }
-  let x=0,y=0, pts=[[0,0]], total=0, labels=[], angleLabels=[];
+  let x=0,y=0, pts=[[0,0]], total=0, labels=[], angleLabels=[], previousAngle=0;
   preset.segments.forEach(seg=>{
     const len = Number(dims[seg.key])||0;
-    const angDeg = seg.angleField!=null ? (Number(dims[seg.angleField])||0) : seg.angle;
+    const bendValue = seg.angleField!=null ? (Number(dims[seg.angleField])||0) : null;
+    const angDeg = seg.angleField!=null ? previousAngle + bendValue : seg.angle;
     const rad = angDeg*Math.PI/180;
     const nx = x+len*Math.cos(rad), ny = y+len*Math.sin(rad);
-    labels.push({mid:[(x+nx)/2,(y+ny)/2], val:len, key:seg.key});
-    if(seg.angleField!=null){ angleLabels.push({pos:[x,y], val:angDeg, key:seg.angleField.replace('angle','')}); }
+    labels.push({mid:[(x+nx)/2,(y+ny)/2], val:len, key:seg.key, angle:angDeg});
+    if(seg.angleField!=null){
+      angleLabels.push({pos:[x,y], val:bendValue, key:seg.angleField.replace('angle',''), fromAngle:previousAngle, toAngle:angDeg});
+    }
     pts.push([nx,ny]);
-    x=nx; y=ny; total+=len;
+    x=nx; y=ny; total+=len; previousAngle=angDeg;
   });
   return { isCircle:false, points:pts, labels:labels, angleLabels:angleLabels, total: Math.round(total) };
 }
 
 function renderShapeSVG(preset, dims, w, h, showLabels){
   const geo = computeShapeGeometry(preset, dims);
-  const pad = 18;
-  const fontSize = showLabels ? Math.max(13, Math.round(h/13)) : Math.max(11, Math.round(h/9));
+  const pad = showLabels==='codes' ? 26 : 30;
+  const fontSize = showLabels==='codes' ? 9 : (showLabels ? Math.max(13, Math.round(h/13)) : Math.max(11, Math.round(h/9)));
   const strokeW = Math.max(3, Math.round(h/28));
   if(geo.isCircle){
     const cx=w/2, cy=h/2;
@@ -783,26 +796,49 @@ function renderShapeSVG(preset, dims, w, h, showLabels){
   const minX=Math.min(...xs), maxX=Math.max(...xs), minY=Math.min(...ys), maxY=Math.max(...ys);
   const bw = Math.max(maxX-minX, 1), bh = Math.max(maxY-minY, 1);
   const scale = Math.min((w-2*pad)/bw, (h-2*pad)/bh);
+  const drawnW = bw*scale, drawnH = bh*scale;
+  const offsetX = (w-drawnW)/2;
+  const offsetY = (h-drawnH)/2;
   const toSvg = (p)=>{
-    const sx = pad + (p[0]-minX)*scale;
-    const sy = h - pad - (p[1]-minY)*scale;
+    const sx = offsetX + (p[0]-minX)*scale;
+    const sy = offsetY + (maxY-p[1])*scale;
     return [sx,sy];
   };
   const spts = geo.points.map(toSvg);
   const pointsAttr = spts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
-  const dots = spts.map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${strokeW*0.9}" fill="#1f2430"/>`).join('');
+  const dots = showLabels==='codes' ? '' : spts.map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${strokeW*0.9}" fill="#1f2430"/>`).join('');
   let labelSvg = '';
   let angleLabelSvg = '';
   if(showLabels){
     labelSvg = geo.labels.map(l=>{
       const [lx,ly] = toSvg(l.mid);
       const textValue = showLabels==='codes' ? l.key : fmt(l.val);
-      return `<text x="${lx}" y="${ly-8}" font-size="${fontSize}" font-weight="700" text-anchor="middle" fill="#2563eb">${textValue}</text>`;
+      const angleRad = (Number(l.angle)||0)*Math.PI/180;
+      let normalX = Math.sin(angleRad), normalY = Math.cos(angleRad);
+      if(normalY>0.15){ normalX=-normalX; normalY=-normalY; }
+      if(Math.abs(normalY)<=0.15 && normalX<0){ normalX=-normalX; }
+      const labelOffset = showLabels==='codes' ? 12 : 14;
+      const textX = lx + normalX*labelOffset;
+      const textY = ly + normalY*labelOffset + fontSize/3;
+      return `<text x="${textX.toFixed(1)}" y="${textY.toFixed(1)}" font-size="${fontSize}" font-weight="700" text-anchor="middle" fill="#2563eb">${textValue}</text>`;
     }).join('');
     angleLabelSvg = (geo.angleLabels||[]).map(a=>{
       const [ax,ay] = toSvg(a.pos);
-      const angleValue = showLabels==='codes' ? a.key : `${fmt(a.val)}°`;
-      return `<text x="${ax}" y="${ay+fontSize+4}" font-size="${fontSize}" font-weight="700" text-anchor="middle" fill="#dc2626">${angleValue}</text>`;
+      const arcRadius = showLabels==='codes' ? 10 : 22;
+      const startRad = a.fromAngle*Math.PI/180;
+      const endRad = a.toAngle*Math.PI/180;
+      const startX = ax + arcRadius*Math.cos(startRad);
+      const startY = ay - arcRadius*Math.sin(startRad);
+      const endX = ax + arcRadius*Math.cos(endRad);
+      const endY = ay - arcRadius*Math.sin(endRad);
+      const largeArc = Math.abs(a.val)>180 ? 1 : 0;
+      const sweep = a.val<0 ? 1 : 0;
+      const midRad = (a.fromAngle + a.val/2)*Math.PI/180;
+      const labelRadius = arcRadius + (showLabels==='codes' ? 7 : 16);
+      const labelX = ax + labelRadius*Math.cos(midRad);
+      const labelY = ay - labelRadius*Math.sin(midRad);
+      const angleValue = showLabels==='codes' ? a.key : `${a.key}=${fmt(a.val)}°`;
+      return `<path d="M ${startX.toFixed(1)} ${startY.toFixed(1)} A ${arcRadius} ${arcRadius} 0 ${largeArc} ${sweep} ${endX.toFixed(1)} ${endY.toFixed(1)}" fill="none" stroke="#dc2626" stroke-width="2"/><circle cx="${startX.toFixed(1)}" cy="${startY.toFixed(1)}" r="1.8" fill="#dc2626"/><circle cx="${endX.toFixed(1)}" cy="${endY.toFixed(1)}" r="1.8" fill="#dc2626"/><text x="${labelX.toFixed(1)}" y="${(labelY+fontSize/3).toFixed(1)}" font-size="${fontSize}" font-weight="700" text-anchor="middle" fill="#dc2626">${angleValue}</text>`;
     }).join('');
   }
   return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
@@ -847,7 +883,8 @@ function renderShapeGallery(){
     div.className = 'shape-thumb' + (p.id===ui.shapeSelectedPreset ? ' selected':'');
     div.setAttribute('role','button');
     div.setAttribute('tabindex','0');
-    div.innerHTML = renderShapeSVG(p, p.sample, 210, 100, 'codes') + `<div class="tname">${p.id}</div>`;
+    div.setAttribute('aria-label', p.id);
+    div.innerHTML = renderShapeSVG(p, p.sample, 210, 100, 'codes');
     div.onclick = ()=>{
       ui.shapeSelectedPreset = p.id;
       ui.shapeDims = Object.assign({}, p.sample);
@@ -914,6 +951,7 @@ function renderShapeDimsForm(){
 
 function updateShapePreview(){
   const preset = SHAPE_PRESETS.find(p=>p.id===ui.shapeSelectedPreset);
+  document.getElementById('shape-code-display').value = preset ? preset.id : '';
   const box = document.getElementById('shape-preview-box');
   box.innerHTML = renderShapeSVG(preset, ui.shapeDims, 340, 170, true);
   const geo = computeShapeGeometry(preset, ui.shapeDims);
