@@ -824,8 +824,8 @@ function computeShapeGeometry(preset, dims){
 
 function renderShapeSVG(preset, dims, w, h, showLabels){
   const geo = computeShapeGeometry(preset, dims);
-  const pad = showLabels==='codes' ? 26 : 30;
-  const fontSize = showLabels==='codes' ? 9 : (showLabels ? Math.max(13, Math.round(h/13)) : Math.max(11, Math.round(h/9)));
+  const pad = showLabels==='codes' ? 26 : Math.min(30, Math.max(8, Math.round(h*0.18)));
+  const fontSize = showLabels==='codes' ? 9 : (showLabels ? Math.max(9, Math.min(13, Math.round(h/13))) : Math.max(9, Math.round(h/9)));
   const strokeW = showLabels==='codes' ? 2.2 : Math.max(3, Math.round(h/28));
   if(geo.isCircle){
     const cx=w/2, cy=h/2;
