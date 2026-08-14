@@ -1263,6 +1263,21 @@ document.getElementById('btn-help').onclick=startTour;
 window.addEventListener('resize',()=>{ if(tourTarget) positionTourTooltip(tourTarget); });
 
 document.addEventListener('keydown',(event)=>{
+  if(event.key==='Enter' && !event.isComposing && event.keyCode!==229){
+    const submitters = [
+      ['shape-modal','sm-ok'],
+      ['voucher-modal','vm-ok'],
+      ['newproj-modal','np-save']
+    ];
+    for(const [modalId,buttonId] of submitters){
+      if(!document.getElementById(modalId).classList.contains('hidden')){
+        document.getElementById(buttonId).click();
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+    }
+  }
   if(event.key!=='Escape') return;
   if(!document.getElementById('tour-tooltip').classList.contains('hidden')){
     finishTour();
