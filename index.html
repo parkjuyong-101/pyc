@@ -83,9 +83,9 @@
   #shape-modal .modal{width:1240px;}
   #shape-body{display:flex;gap:16px;}
   #shape-gallery{order:2;width:920px;display:grid;grid-template-columns:repeat(5,1fr);gap:7px;max-height:570px;overflow:auto;padding:4px;align-content:start;}
-  .shape-thumb{border:2px solid var(--border);border-radius:3px;padding:4px;cursor:pointer;text-align:center;background:#fafbfc;min-height:102px;}
+  .shape-thumb{border:1px solid #cfd4da;border-radius:0;padding:4px;cursor:pointer;text-align:center;background:#fff;min-height:102px;}
   .shape-thumb:hover{border-color:var(--accent);}
-  .shape-thumb.selected{border-color:var(--accent);background:var(--accent-light);}
+  .shape-thumb.selected{border:4px solid #0645ff;background:#fff;padding:1px;}
   .shape-thumb svg{width:100%;height:78px;}
   .shape-thumb.shape-toggle{background:#fffbdc;border-color:#a79d67;display:flex;align-items:center;justify-content:center;min-height:102px;}
   .shape-thumb.shape-toggle:hover{background:#15803d;border-color:#15803d;}
@@ -772,7 +772,7 @@ function renderShapeSVG(preset, dims, w, h, showLabels){
   const geo = computeShapeGeometry(preset, dims);
   const pad = showLabels==='codes' ? 26 : 30;
   const fontSize = showLabels==='codes' ? 9 : (showLabels ? Math.max(13, Math.round(h/13)) : Math.max(11, Math.round(h/9)));
-  const strokeW = Math.max(3, Math.round(h/28));
+  const strokeW = showLabels==='codes' ? 2.2 : Math.max(3, Math.round(h/28));
   if(geo.isCircle){
     const cx=w/2, cy=h/2;
     const rr = Math.max(8, Math.min(w,h)/2 - pad);
@@ -820,7 +820,9 @@ function renderShapeSVG(preset, dims, w, h, showLabels){
       const labelOffset = showLabels==='codes' ? 12 : 14;
       const textX = lx + normalX*labelOffset;
       const textY = ly + normalY*labelOffset + fontSize/3;
-      return `<text x="${textX.toFixed(1)}" y="${textY.toFixed(1)}" font-size="${fontSize}" font-weight="700" text-anchor="middle" fill="#2563eb">${textValue}</text>`;
+      const labelColor = showLabels==='codes' ? '#111827' : '#1f2937';
+      const labelWeight = showLabels==='codes' ? '500' : '700';
+      return `<text x="${textX.toFixed(1)}" y="${textY.toFixed(1)}" font-size="${fontSize}" font-weight="${labelWeight}" text-anchor="middle" fill="${labelColor}">${textValue}</text>`;
     }).join('');
     angleLabelSvg = (geo.angleLabels||[]).map(a=>{
       const [ax,ay] = toSvg(a.pos);
