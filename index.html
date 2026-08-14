@@ -440,7 +440,7 @@ const SHAPE_LABEL_POSITIONS = {
 
 let state = null;
 let ui = { activeZoneId:null, activeFloor:null, activeMember:null, activeVoucherId:null, selectedRowId:null, currentFilePath:null, shapeTargetRowId:null, shapeSelectedPreset:null, shapeDims:{} };
-let tableCursor = { row:0, col:0 };
+let tableCursor = { row:0, col:0, active:false };
 
 function uid(){ return Math.random().toString(36).slice(2,10); }
 
@@ -679,7 +679,7 @@ function setTableCursor(row, col, focusCell=true){
   if(!rows.length) return;
   row = Math.max(0, Math.min(row, rows.length-1));
   col = Math.max(0, Math.min(col, rows[row].length-1));
-  tableCursor = {row, col};
+  tableCursor = {row, col, active:true};
   document.querySelectorAll('#rebar-tbody td.grid-active, #rebar-tbody td.grid-editing').forEach(td=>{
     td.classList.remove('grid-active','grid-editing');
     td.tabIndex = -1;
@@ -698,6 +698,7 @@ function setTableCursor(row, col, focusCell=true){
 }
 
 function restoreTableCursor(focusCell){
+  if(!tableCursor.active) return;
   const rows = tableCells();
   rows.flat().forEach(td=>td.tabIndex=-1);
   if(rows.length) setTableCursor(tableCursor.row, tableCursor.col, focusCell);

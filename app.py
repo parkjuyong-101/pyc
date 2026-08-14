@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import ctypes
+import multiprocessing
 import webview
 
 
@@ -12,13 +13,13 @@ def resource_path(relative_path):
 
 class ProjectApi:
     def __init__(self):
-        self.window = None
+        self._window = None
         self.state_json = None
         self.current_path = None
         self.dirty = False
 
     def set_window(self, window):
-        self.window = window
+        self._window = window
 
     def update_state(self, state_json, dirty=True):
         self.state_json = state_json
@@ -45,7 +46,7 @@ class ProjectApi:
         self.dirty = False
 
     def _choose_save_path(self, suggested_name):
-        selected = self.window.create_file_dialog(
+        selected = self._window.create_file_dialog(
             webview.SAVE_DIALOG,
             save_filename=self._suggested_filename(suggested_name),
             file_types=('철근 프로젝트 (*.rebar.json)', 'JSON 파일 (*.json)'),
@@ -68,7 +69,7 @@ class ProjectApi:
 
     def open_project(self):
         try:
-            selected = self.window.create_file_dialog(
+            selected = self._window.create_file_dialog(
                 webview.OPEN_DIALOG,
                 allow_multiple=False,
                 file_types=('철근 프로젝트 (*.rebar.json)', 'JSON 파일 (*.json)'),
@@ -104,6 +105,7 @@ class ProjectApi:
 
 
 def main():
+    multiprocessing.freeze_support()
     api = ProjectApi()
     window = webview.create_window(
         "철근가공물량 산출 프로그램",
