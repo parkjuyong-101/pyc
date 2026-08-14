@@ -316,7 +316,7 @@
   </div>
 </div>
 
-<input type="file" id="file-input" accept=".json" style="display:none;">
+<input type="file" id="file-input" accept=".rebar,.rebar.json,.json" style="display:none;">
 
 <div id="tour-backdrop" class="hidden" aria-hidden="true"></div>
 <div id="tour-tooltip" class="hidden" role="dialog" aria-live="polite">
@@ -536,9 +536,40 @@ async function saveToFile(saveAs=false){
   document.getElementById('filepath-label').textContent = fname + ' (저장됨)';
 }
 
+function selectFirstLoadedLocation(){
+  const zones = Array.isArray(state.zones) ? state.zones : [];
+  for(const zone of zones){
+    const zoneData = (state.data && state.data[zone.id]) || {};
+    const floorOrder = [...freshFloors(), ...Object.keys(zoneData).filter(f=>!freshFloors().includes(f))];
+    for(const floor of floorOrder){
+      const floorData = zoneData[floor] || {};
+      const memberOrder = [...MEMBER_TYPES, ...Object.keys(floorData).filter(m=>!MEMBER_TYPES.includes(m))];
+      for(const member of memberOrder){
+        const vouchers = floorData[member];
+        if(Array.isArray(vouchers) && vouchers.length){
+          ui.activeZoneId = zone.id;
+          ui.activeFloor = floor;
+          ui.activeMember = member;
+          ui.activeVoucherId = vouchers[0].id;
+          ui.selectedRowId = vouchers[0].rows && vouchers[0].rows[0] ? vouchers[0].rows[0].id : null;
+          return;
+        }
+      }
+    }
+  }
+  if(zones.length){
+    ui.activeZoneId = zones[0].id;
+    ui.activeFloor = freshFloors()[0] || null;
+    ui.activeMember = MEMBER_TYPES[0];
+  }
+}
+
 function applyLoadedProject(loaded, fileName, filePath=null){
   state = loaded;
   ui = { activeZoneId:null, activeFloor:null, activeMember:null, activeVoucherId:null, selectedRowId:null, currentFilePath:filePath || fileName };
+  tableCursor = {row:0,col:0,active:false};
+  tableEditor = null;
+  selectFirstLoadedLocation();
   document.getElementById('filepath-label').textContent = fileName;
   renderAll();
   autosave(false);
