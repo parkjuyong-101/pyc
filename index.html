@@ -1183,6 +1183,26 @@ function renderShapeGallery(){
 document.getElementById('shape-gallery').addEventListener('keydown', function(e){
   const item = e.target.closest('.shape-thumb');
   if(!item) return;
+  if(/^\d$/.test(e.key)){
+    e.preventDefault(); e.stopPropagation();
+    const firstInput = document.querySelector('#shape-dims input:not(:disabled)');
+    if(firstInput){
+      firstInput.focus();
+      firstInput.value = e.key;
+      firstInput.dispatchEvent(new Event('input',{bubbles:true}));
+      firstInput.setSelectionRange(firstInput.value.length,firstInput.value.length);
+    }
+    return;
+  }
+  if(e.key==='Tab' && !e.shiftKey){
+    const firstInput = document.querySelector('#shape-dims input:not(:disabled)');
+    if(firstInput){
+      e.preventDefault(); e.stopPropagation();
+      firstInput.focus();
+      firstInput.select();
+    }
+    return;
+  }
   if(e.key==='Enter'){
     e.preventDefault(); e.stopPropagation();
     if(item.classList.contains('selected')) document.getElementById('sm-ok').click();
@@ -1201,6 +1221,23 @@ document.getElementById('shape-gallery').addEventListener('keydown', function(e)
   const next = Math.max(0, Math.min(items.length-1, items.indexOf(item)+moves[e.key]));
   items[next].focus();
   items[next].scrollIntoView({block:'nearest'});
+});
+
+document.getElementById('shape-dims').addEventListener('keydown', function(e){
+  if(e.key!=='Tab') return;
+  const inputs = Array.from(this.querySelectorAll('input:not(:disabled),select:not(:disabled)'));
+  const index = inputs.indexOf(e.target);
+  if(index<0) return;
+  e.preventDefault(); e.stopPropagation();
+  const nextIndex = e.shiftKey ? index-1 : index+1;
+  if(nextIndex>=0 && nextIndex<inputs.length){
+    inputs[nextIndex].focus();
+    if(typeof inputs[nextIndex].select==='function') inputs[nextIndex].select();
+  } else if(e.shiftKey){
+    document.querySelector('#shape-gallery .shape-thumb.selected')?.focus();
+  } else {
+    document.getElementById('sm-ok').focus();
+  }
 });
 
 function renderShapeDimsForm(){
