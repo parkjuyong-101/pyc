@@ -88,9 +88,12 @@
   .shape-thumb.selected{border-color:var(--accent);background:var(--accent-light);}
   .shape-thumb .tname{font-size:13px;font-weight:600;color:#1f2430;margin-top:6px;}
   .shape-thumb svg{width:100%;height:100px;}
+  .shape-thumb.shape-toggle{background:#16a34a;border-color:#16a34a;display:flex;align-items:center;justify-content:center;min-height:130px;}
+  .shape-thumb.shape-toggle:hover{background:#15803d;border-color:#15803d;}
+  .shape-thumb.shape-toggle .toggle-label{color:#fff;font-size:15px;font-weight:700;text-align:center;}
   #shape-right{width:400px;display:flex;flex-direction:column;gap:10px;}
   #shape-preview-box{border:1px solid var(--border);border-radius:6px;background:#fafbfc;height:220px;display:flex;align-items:center;justify-content:center;}
-  #shape-dims{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  #shape-dims{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:280px;overflow-y:auto;padding-right:4px;}
   #shape-dims .field label{font-size:12px;color:var(--muted);}
   #shape-dims .field input{width:100%;padding:6px;border:1px solid var(--border);border-radius:4px;}
   #shape-dims .field.disabled input{background:#f1f3f5;color:#aaa;}
@@ -280,50 +283,54 @@ const GRADES = ['SD300','SD400','SD500','SD600','SD700','SD800'];
 const MEMBER_TYPES = ['기초','기둥','벽체','보','슬래브','계단','기타'];
 const USAGES = ['None','주근','띠철근','배력근','온도철근','기타'];
 
+const ALL_FIELD_KEYS = ['A','B','C','D','E','F','G','angleX','angleY','angleZ','R','arcAngle'];
+const FIELD_LABELS = { A:'A',B:'B',C:'C',D:'D',E:'E',F:'F',G:'G', angleX:'각도 X', angleY:'각도 Y', angleZ:'각도 Z', R:'반지름', arcAngle:'호 각도' };
+
 const SHAPE_PRESETS = [
   // --- 일반철근(주철근) 계열 ---
-  { id:'T1-00', name:'직선형', fields:['A'],
+  { id:'T1-00', name:'직선형', tab:'main', fields:['A'],
     segments:[{key:'A',angle:0}], sample:{A:5000} },
-  { id:'T1-01', name:'절곡형(2단)', fields:['A','B'],
+  { id:'T1-01', name:'절곡형(2단)', tab:'main', fields:['A','B'],
     segments:[{key:'A',angle:0},{key:'B',angle:90}], sample:{A:2000,B:300} },
-  { id:'T1-02', name:'절곡형(2단, 사절 갈고리)', fields:['A','B','angle'],
-    segments:[{key:'A',angle:0},{key:'B',angleField:'angle'}], sample:{A:2000,B:250,angle:45} },
-  { id:'T1-03', name:'절곡형(3단, 끝단 갈고리)', fields:['A','B','C','angle'],
-    segments:[{key:'A',angle:0},{key:'B',angle:70},{key:'C',angleField:'angle'}], sample:{A:1500,B:800,C:250,angle:45} },
-  { id:'T1-04', name:'오프셋형(4단, 이형절곡)', fields:['A','B','C','D'],
+  { id:'T1-02', name:'절곡형(2단, 각도지정 갈고리)', tab:'main', fields:['A','B','angleX'],
+    segments:[{key:'A',angle:0},{key:'B',angleField:'angleX'}], sample:{A:2000,B:250,angleX:45} },
+  { id:'T1-03', name:'절곡형(3단, 끝단 갈고리)', tab:'main', fields:['A','B','C','angleX'],
+    segments:[{key:'A',angle:0},{key:'B',angle:70},{key:'C',angleField:'angleX'}], sample:{A:1500,B:800,C:250,angleX:45} },
+  { id:'T1-04', name:'오프셋형(4단, 이형절곡)', tab:'main', fields:['A','B','C','D'],
     segments:[{key:'A',angle:0},{key:'B',angle:90},{key:'C',angle:0},{key:'D',angle:-90}], sample:{A:1500,B:150,C:400,D:150} },
-  { id:'T1-05', name:'지그재그형(4단, 이중절곡)', fields:['A','B','C','D'],
-    segments:[{key:'A',angle:0},{key:'B',angle:45},{key:'C',angle:-45},{key:'D',angle:0}], sample:{A:1200,B:300,C:300,D:1200} },
-  { id:'T1-06', name:'지그재그형(6단)', fields:['A','B','C','D','E','F'],
-    segments:[{key:'A',angle:0},{key:'B',angle:45},{key:'C',angle:0},{key:'D',angle:-45},{key:'E',angle:0},{key:'F',angle:45}],
-    sample:{A:800,B:250,C:400,D:250,E:400,F:250} },
-  { id:'T1-07', name:'계단형(5단)', fields:['A','B','C','D','E'],
+  { id:'T1-05', name:'지그재그형(4단, 이중절곡)', tab:'main', fields:['A','B','C','D','angleX','angleY'],
+    segments:[{key:'A',angle:0},{key:'B',angleField:'angleX'},{key:'C',angleField:'angleY'},{key:'D',angle:0}],
+    sample:{A:1200,B:300,C:300,D:1200,angleX:45,angleY:-45} },
+  { id:'T1-06', name:'지그재그형(6단)', tab:'main', fields:['A','B','C','D','E','F','angleX','angleY'],
+    segments:[{key:'A',angle:0},{key:'B',angleField:'angleX'},{key:'C',angle:0},{key:'D',angleField:'angleY'},{key:'E',angle:0},{key:'F',angle:45}],
+    sample:{A:800,B:250,C:400,D:250,E:400,F:250,angleX:45,angleY:-45} },
+  { id:'T1-07', name:'계단형(5단)', tab:'main', fields:['A','B','C','D','E'],
     segments:[{key:'A',angle:0},{key:'B',angle:-90},{key:'C',angle:0},{key:'D',angle:-90},{key:'E',angle:0}],
     sample:{A:400,B:200,C:400,D:200,E:400} },
   // --- 보조철근(스터럽/후프) 계열 ---
-  { id:'T1-09', name:'U형(양단갈고리, 직각)', fields:['A','B','C'],
+  { id:'T1-09', name:'U형(양단갈고리, 직각)', tab:'stirrup', fields:['A','B','C'],
     segments:[{key:'A',angle:-90},{key:'B',angle:0},{key:'C',angle:90}], sample:{A:110,B:500,C:110} },
-  { id:'T1-10', name:'ㄷ자형(4단, 한쪽 확장)', fields:['A','B','C','D'],
+  { id:'T1-10', name:'ㄷ자형(4단, 한쪽 확장)', tab:'stirrup', fields:['A','B','C','D'],
     segments:[{key:'A',angle:-90},{key:'B',angle:0},{key:'C',angle:90},{key:'D',angle:0}], sample:{A:110,B:500,C:250,D:110} },
-  { id:'T1-11', name:'ㄷ자형(4단, 결합형)', fields:['A','B','C','D'],
+  { id:'T1-11', name:'ㄷ자형(4단, 결합형)', tab:'stirrup', fields:['A','B','C','D'],
     segments:[{key:'A',angle:-90},{key:'B',angle:0},{key:'C',angle:0},{key:'D',angle:90}], sample:{A:110,B:300,C:200,D:110} },
-  { id:'T1-12', name:'U형(5단, 양단 갈고리 확장)', fields:['A','B','C','D','E'],
+  { id:'T1-12', name:'U형(5단, 양단 갈고리 확장)', tab:'stirrup', fields:['A','B','C','D','E'],
     segments:[{key:'A',angle:-90},{key:'B',angle:0},{key:'C',angle:0},{key:'D',angle:0},{key:'E',angle:90}],
     sample:{A:110,B:150,C:500,D:150,E:110} },
-  { id:'T1-13', name:'U형(5단, 45도 양단 갈고리)', fields:['A','B','C','D','E'],
-    segments:[{key:'A',angle:-45},{key:'B',angle:-90},{key:'C',angle:0},{key:'D',angle:90},{key:'E',angle:45}],
-    sample:{A:110,B:150,C:500,D:150,E:110} },
-  { id:'T1-14', name:'지그재그형(5단, 스터럽)', fields:['A','B','C','D','E'],
-    segments:[{key:'A',angle:-45},{key:'B',angle:45},{key:'C',angle:-45},{key:'D',angle:45},{key:'E',angle:0}],
-    sample:{A:110,B:150,C:150,D:150,E:110} },
-  { id:'T1-15', name:'상자형(6단)', fields:['A','B','C','D','E','F'],
+  { id:'T1-13', name:'U형(5단, 각도지정 양단 갈고리)', tab:'stirrup', fields:['A','B','C','D','E','angleX','angleY'],
+    segments:[{key:'A',angleField:'angleX'},{key:'B',angle:-90},{key:'C',angle:0},{key:'D',angle:90},{key:'E',angleField:'angleY'}],
+    sample:{A:110,B:150,C:500,D:150,E:110,angleX:-45,angleY:45} },
+  { id:'T1-14', name:'지그재그형(5단, 스터럽)', tab:'stirrup', fields:['A','B','C','D','E','angleX','angleY'],
+    segments:[{key:'A',angleField:'angleX'},{key:'B',angleField:'angleY'},{key:'C',angle:-45},{key:'D',angle:45},{key:'E',angle:0}],
+    sample:{A:110,B:150,C:150,D:150,E:110,angleX:-45,angleY:45} },
+  { id:'T1-15', name:'상자형(6단)', tab:'stirrup', fields:['A','B','C','D','E','F'],
     segments:[{key:'A',angle:0},{key:'B',angle:-90},{key:'C',angle:0},{key:'D',angle:-90},{key:'E',angle:0},{key:'F',angle:90}],
     sample:{A:150,B:200,C:150,D:200,E:150,F:200} },
-  { id:'T1-16', name:'폐쇄형 후프/스터럽(사각)', fields:['A','B','C','D'],
+  { id:'T1-16', name:'폐쇄형 후프/스터럽(사각)', tab:'stirrup', fields:['A','B','C','D'],
     segments:[{key:'A',angle:0},{key:'B',angle:-90},{key:'C',angle:180},{key:'D',angle:90}], sample:{A:200,B:150,C:200,D:150} },
-  { id:'T1-17', name:'나선형/원형후프(R=)', fields:['R'], type:'circle', sample:{R:80} },
-  { id:'T1-18', name:'표준갈고리(반원형, 180도, R=)', fields:['R'], type:'semicircle', sample:{R:80} },
-  { id:'T1-FREE', name:'자유형(직접 절곡 지정)', free:true, maxSegments:7,
+  { id:'T1-17', name:'나선형/원형후프(R=)', tab:'stirrup', fields:['R'], type:'circle', sample:{R:80} },
+  { id:'T1-18', name:'표준갈고리(반원형, 180도, R=)', tab:'stirrup', fields:['R','arcAngle'], type:'semicircle', sample:{R:80,arcAngle:180} },
+  { id:'T1-FREE', name:'자유형(직접 절곡 지정)', tab:'both', free:true, maxSegments:7,
     sample:{segCount:3, A:200,angleA:0, B:150,angleB:90, C:150,angleC:-90} },
 ];
 
@@ -698,12 +705,13 @@ function computeShapeGeometry(preset, dims){
   }
   if(preset.type==='semicircle'){
     const R = Number(dims.R)||0;
-    return { isCircle:true, R:R, half:true, total: Math.round(Math.PI*R) };
+    const arc = dims.arcAngle!=null && dims.arcAngle!=='' ? Number(dims.arcAngle) : 180;
+    return { isCircle:true, R:R, half:true, arcAngle:arc, total: Math.round(R*(arc*Math.PI/180)) };
   }
   if(preset.free){
     const letters = ['A','B','C','D','E','F','G'];
     const n = Math.min(Math.max(Number(dims.segCount)||1,1), letters.length);
-    let fx=0,fy=0, fpts=[[0,0]], ftotal=0, flabels=[];
+    let fx=0,fy=0, fpts=[[0,0]], ftotal=0, flabels=[], fangleLabels=[];
     for(let i=0;i<n;i++){
       const k = letters[i];
       const len = Number(dims[k])||0;
@@ -711,22 +719,24 @@ function computeShapeGeometry(preset, dims){
       const rad = ang*Math.PI/180;
       const nx = fx+len*Math.cos(rad), ny = fy+len*Math.sin(rad);
       flabels.push({mid:[(fx+nx)/2,(fy+ny)/2], val:len});
+      fangleLabels.push({pos:[fx,fy], val:ang});
       fpts.push([nx,ny]);
       fx=nx; fy=ny; ftotal+=len;
     }
-    return { isCircle:false, points:fpts, labels:flabels, total: Math.round(ftotal) };
+    return { isCircle:false, points:fpts, labels:flabels, angleLabels:fangleLabels, total: Math.round(ftotal) };
   }
-  let x=0,y=0, pts=[[0,0]], total=0, labels=[];
+  let x=0,y=0, pts=[[0,0]], total=0, labels=[], angleLabels=[];
   preset.segments.forEach(seg=>{
     const len = Number(dims[seg.key])||0;
     const angDeg = seg.angleField!=null ? (Number(dims[seg.angleField])||0) : seg.angle;
     const rad = angDeg*Math.PI/180;
     const nx = x+len*Math.cos(rad), ny = y+len*Math.sin(rad);
     labels.push({mid:[(x+nx)/2,(y+ny)/2], val:len});
+    if(seg.angleField!=null){ angleLabels.push({pos:[x,y], val:angDeg}); }
     pts.push([nx,ny]);
     x=nx; y=ny; total+=len;
   });
-  return { isCircle:false, points:pts, labels:labels, total: Math.round(total) };
+  return { isCircle:false, points:pts, labels:labels, angleLabels:angleLabels, total: Math.round(total) };
 }
 
 function renderShapeSVG(preset, dims, w, h, showLabels){
@@ -739,9 +749,11 @@ function renderShapeSVG(preset, dims, w, h, showLabels){
     const rr = Math.max(8, Math.min(w,h)/2 - pad);
     const rLabel = showLabels ? `<text x="${cx}" y="${cy+4}" font-size="${fontSize}" text-anchor="middle" fill="#2563eb" font-weight="700">R=${fmt(geo.R)}</text>` : '';
     if(geo.half){
+      const arcLabel = showLabels ? `<text x="${cx}" y="${cy-rr-6}" font-size="${fontSize}" text-anchor="middle" fill="#dc2626" font-weight="700">${fmt(geo.arcAngle)}°</text>` : '';
       return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
         <path d="M ${cx-rr} ${cy} A ${rr} ${rr} 0 0 1 ${cx+rr} ${cy}" fill="none" stroke="#1f2430" stroke-width="${strokeW}" stroke-linecap="round"/>
         ${rLabel}
+        ${arcLabel}
       </svg>`;
     }
     return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
@@ -762,16 +774,22 @@ function renderShapeSVG(preset, dims, w, h, showLabels){
   const pointsAttr = spts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
   const dots = spts.map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${strokeW*0.9}" fill="#1f2430"/>`).join('');
   let labelSvg = '';
+  let angleLabelSvg = '';
   if(showLabels){
     labelSvg = geo.labels.map(l=>{
       const [lx,ly] = toSvg(l.mid);
       return `<text x="${lx}" y="${ly-8}" font-size="${fontSize}" font-weight="700" text-anchor="middle" fill="#2563eb">${fmt(l.val)}</text>`;
+    }).join('');
+    angleLabelSvg = (geo.angleLabels||[]).map(a=>{
+      const [ax,ay] = toSvg(a.pos);
+      return `<text x="${ax}" y="${ay+fontSize+4}" font-size="${fontSize}" font-weight="700" text-anchor="middle" fill="#dc2626">${fmt(a.val)}°</text>`;
     }).join('');
   }
   return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
     <polyline points="${pointsAttr}" fill="none" stroke="#1f2430" stroke-width="${strokeW}" stroke-linejoin="round" stroke-linecap="round"/>
     ${dots}
     ${labelSvg}
+    ${angleLabelSvg}
   </svg>`;
 }
 
@@ -782,6 +800,7 @@ function openShapeModal(rowId){
   const hasSavedShape = row.shape && row.shape.presetId;
   ui.shapeSelectedPreset = hasSavedShape ? row.shape.presetId : SHAPE_PRESETS[0].id;
   const activePreset = SHAPE_PRESETS.find(p=>p.id===ui.shapeSelectedPreset);
+  ui.shapeActiveTab = (activePreset.tab==='stirrup') ? 'stirrup' : 'main';
   ui.shapeDims = Object.assign({}, hasSavedShape ? row.shape.dims : activePreset.sample);
   renderShapeGallery();
   renderShapeDimsForm();
@@ -792,7 +811,18 @@ function openShapeModal(rowId){
 function renderShapeGallery(){
   const gal = document.getElementById('shape-gallery');
   gal.innerHTML='';
-  SHAPE_PRESETS.forEach(p=>{
+  const toggleDiv = document.createElement('div');
+  toggleDiv.className = 'shape-thumb shape-toggle';
+  toggleDiv.setAttribute('role','button');
+  toggleDiv.setAttribute('tabindex','0');
+  const otherTabLabel = ui.shapeActiveTab==='main' ? '보조철근 보기' : '일반철근 보기';
+  toggleDiv.innerHTML = `<div class="toggle-label">${otherTabLabel}</div>`;
+  toggleDiv.onclick = ()=>{
+    ui.shapeActiveTab = ui.shapeActiveTab==='main' ? 'stirrup' : 'main';
+    renderShapeGallery();
+  };
+  gal.appendChild(toggleDiv);
+  SHAPE_PRESETS.filter(p=> p.tab===ui.shapeActiveTab || p.tab==='both').forEach(p=>{
     const div = document.createElement('div');
     div.className = 'shape-thumb' + (p.id===ui.shapeSelectedPreset ? ' selected':'');
     div.setAttribute('role','button');
@@ -844,14 +874,17 @@ function renderShapeDimsForm(){
     });
     return;
   }
-  preset.fields.forEach(f=>{
-    const label = f==='angle' ? '각도(°)' : (f==='R' ? '반지름 R' : f+' (mm)');
+  ALL_FIELD_KEYS.forEach(f=>{
+    const active = preset.fields.includes(f);
+    const isAngle = f==='angleX' || f==='angleY' || f==='angleZ';
+    const unit = isAngle ? '°' : (f==='R' || f==='arcAngle' ? (f==='arcAngle'?'°':'mm') : 'mm');
+    const label = FIELD_LABELS[f] + (unit ? ` (${unit})` : '');
     const div = document.createElement('div');
-    div.className='field';
-    div.innerHTML = `<label>${label}</label><input type="number" data-dim="${f}" value="${ui.shapeDims[f]!=null?ui.shapeDims[f]:''}">`;
+    div.className = 'field' + (active ? '' : ' disabled');
+    div.innerHTML = `<label${isAngle?' style="color:#dc2626;"':''}>${label}</label><input type="number" data-dim="${f}" ${active?'':'disabled'} value="${active && ui.shapeDims[f]!=null ? ui.shapeDims[f] : ''}">`;
     wrap.appendChild(div);
   });
-  wrap.querySelectorAll('input').forEach(inp=>{
+  wrap.querySelectorAll('input:not(:disabled)').forEach(inp=>{
     inp.addEventListener('input', ()=>{
       ui.shapeDims[inp.getAttribute('data-dim')] = Number(inp.value)||0;
       updateShapePreview();
