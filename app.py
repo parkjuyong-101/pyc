@@ -3,6 +3,7 @@ import sys
 import json
 import ctypes
 import multiprocessing
+import winreg
 import webview
 
 
@@ -12,8 +13,9 @@ def resource_path(relative_path):
 
 
 class ProjectApi:
-    def __init__(self):
+    def __init__(self, launch_path=None):
         self._window = None
+        self._launch_path = launch_path
         app_data = os.getenv('APPDATA') or os.path.expanduser('~')
         self._settings_dir = os.path.join(app_data, 'RebarQuantityCalculator')
         self._settings_path = os.path.join(self._settings_dir, 'settings.json')
@@ -30,12 +32,20 @@ class ProjectApi:
             self.dirty = True
         return True
 
+    def begin_new_project(self):
+        self.current_path = None
+        self.state_json = None
+        self.dirty = False
+        return True
+
     def _suggested_filename(self, suggested_name):
         name = (suggested_name or '철근가공물량').strip()
         invalid = '<>:"/\\|?*'
         name = ''.join('_' if ch in invalid else ch for ch in name)
-        if not name.endswith('.rebar.json'):
-            name += '.rebar.json'
+        if name.endswith('.rebar.json'):
+            name = name[:-5]
+        if not name.endswith('.rebar'):
+            name += '.rebar'
         return name
 
     def _write(self, path, state_json):
@@ -58,6 +68,16 @@ class ProjectApi:
 
     def load_last_project(self):
         try:
+            if self._launch_path and os.path.isfile(self._launch_path):
+                path = self._launch_path
+                self._launch_path = None
+                with open(path, 'r', encoding='utf-8') as file:
+                    parsed = json.load(file)
+                self.current_path = path
+                self.state_json = json.dumps(parsed, ensure_ascii=False)
+                self.dirty = False
+                self._remember_path(path)
+                return {'ok': True, 'path': path, 'name': os.path.basename(path), 'state': parsed, 'launched': True}
             if not os.path.isfile(self._settings_path):
                 return {'ok': False, 'not_found': True}
             with open(self._settings_path, 'r', encoding='utf-8') as file:
@@ -78,7 +98,7 @@ class ProjectApi:
         selected = self._window.create_file_dialog(
             webview.SAVE_DIALOG,
             save_filename=self._suggested_filename(suggested_name),
-            file_types=('철근 프로젝트 (*.rebar.json)', 'JSON 파일 (*.json)'),
+            file_types=('철근 프로젝트 (*.rebar)', '기존 철근 프로젝트 (*.rebar.json)', 'JSON 파일 (*.json)'),
         )
         if not selected:
             return None
@@ -101,7 +121,7 @@ class ProjectApi:
             selected = self._window.create_file_dialog(
                 webview.OPEN_DIALOG,
                 allow_multiple=False,
-                file_types=('철근 프로젝트 (*.rebar.json)', 'JSON 파일 (*.json)'),
+                file_types=('철근 프로젝트 (*.rebar)', '기존 철근 프로젝트 (*.rebar.json)', 'JSON 파일 (*.json)'),
             )
             if not selected:
                 return {'ok': False, 'cancelled': True}
@@ -134,9 +154,29 @@ class ProjectApi:
         return False
 
 
+def register_file_association():
+    if not getattr(sys, 'frozen', False):
+        return
+    try:
+        executable = os.path.abspath(sys.executable)
+        with winreg.CreateKey(winreg.HKEY_CURRENT_USER, r'Software\Classes\.rebar') as key:
+            winreg.SetValueEx(key, '', 0, winreg.REG_SZ, 'RebarQuantity.Project')
+        with winreg.CreateKey(winreg.HKEY_CURRENT_USER, r'Software\Classes\RebarQuantity.Project') as key:
+            winreg.SetValueEx(key, '', 0, winreg.REG_SZ, '철근가공물량 프로젝트')
+        with winreg.CreateKey(winreg.HKEY_CURRENT_USER, r'Software\Classes\RebarQuantity.Project\DefaultIcon') as key:
+            winreg.SetValueEx(key, '', 0, winreg.REG_SZ, executable + ',0')
+        with winreg.CreateKey(winreg.HKEY_CURRENT_USER, r'Software\Classes\RebarQuantity.Project\shell\open\command') as key:
+            winreg.SetValueEx(key, '', 0, winreg.REG_SZ, f'"{executable}" "%1"')
+        ctypes.windll.shell32.SHChangeNotify(0x08000000, 0, None, None)
+    except Exception:
+        pass
+
+
 def main():
     multiprocessing.freeze_support()
-    api = ProjectApi()
+    register_file_association()
+    launch_path = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else None
+    api = ProjectApi(launch_path)
     window = webview.create_window(
         "철근가공물량 산출 프로그램",
         resource_path("index.html"),

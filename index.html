@@ -80,6 +80,9 @@
   .modal .btns{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
   .modal .btns button{padding:8px 18px;border-radius:5px;border:1px solid var(--border);background:#fff;cursor:pointer;font-size:13px;}
   .modal .btns button.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+  #startup-modal button{border:1px solid var(--border);border-radius:6px;background:#fff;cursor:pointer;font-size:14px;font-family:inherit;}
+  #startup-modal button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:700;}
+  #startup-last.hidden{display:none;}
   .modal .btns button:hover{filter:brightness(0.96);}
   #newproj-modal .modal, #voucher-modal .modal{width:420px;}
   #shape-modal .modal{width:1240px;}
@@ -158,6 +161,7 @@
     <button id="btn-new">📄 새 프로젝트</button>
     <button id="btn-open">📂 열기</button>
     <button id="btn-save">💾 저장</button>
+    <button id="btn-save-as">💾 다른 이름 저장</button>
     <div class="sep"></div>
     <button id="btn-addzone">+ 공구</button>
     <button id="btn-delzone">− 공구</button>
@@ -208,7 +212,7 @@
               <th style="width:60px;">합계</th>
               <th style="width:70px;">정착</th>
               <th style="width:55px;">본수</th>
-              <th style="width:80px;">실중량</th>
+              <th style="width:90px;">실중량(Ton)</th>
             </tr>
           </thead>
           <tbody id="rebar-tbody"></tbody>
@@ -216,8 +220,21 @@
       </div>
       <div id="statusbar">
         <span id="voucher-status">전표: -</span>
-        <span class="total" id="total-weight">총 중량: 0.00 kg</span>
+        <span class="total" id="total-weight">총 중량: 0.000 Ton</span>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- 시작 방법 선택 모달 -->
+<div class="modal-overlay hidden" id="startup-modal">
+  <div class="modal" style="width:460px;">
+    <h2>시작 방법 선택</h2>
+    <p style="margin:0 0 16px;color:#4b5563;line-height:1.6;">새 작업을 만들거나 저장한 프로젝트를 불러오세요.</p>
+    <div style="display:grid;gap:10px;">
+      <button class="primary" id="startup-new" style="padding:13px;">📄 새 프로젝트 만들기</button>
+      <button id="startup-open" style="padding:13px;">📂 저장한 파일 불러오기</button>
+      <button id="startup-last" class="hidden" style="padding:13px;"></button>
     </div>
   </div>
 </div>
@@ -442,6 +459,7 @@ let state = null;
 let ui = { activeZoneId:null, activeFloor:null, activeMember:null, activeVoucherId:null, selectedRowId:null, currentFilePath:null, shapeTargetRowId:null, shapeSelectedPreset:null, shapeDims:{} };
 let tableCursor = { row:0, col:0, active:false };
 let tableEditor = null;
+let startupLastProject = null;
 
 function uid(){ return Math.random().toString(36).slice(2,10); }
 
@@ -497,10 +515,10 @@ function loadAutosave(){
   return null;
 }
 
-async function saveToFile(){
-  const fname = (state.meta.site || '철근가공물량') + '.rebar.json';
+async function saveToFile(saveAs=false){
+  const fname = (state.meta.site || '철근가공물량') + '.rebar';
   if(window.pywebview && window.pywebview.api){
-    const result = await window.pywebview.api.save_project(JSON.stringify(state), state.meta.site || '철근가공물량', false);
+    const result = await window.pywebview.api.save_project(JSON.stringify(state), state.meta.site || '철근가공물량', saveAs);
     if(result.ok){
       ui.currentFilePath = result.path;
       document.getElementById('filepath-label').textContent = result.name + ' (저장됨)';
@@ -619,7 +637,7 @@ function computeRow(row){
   const grade = row.grade, dia = row.dia;
   row.anchor = (state.anchor[grade] && state.anchor[grade][dia]) ? state.anchor[grade][dia] : '';
   const uw = UNIT_WEIGHT[dia] || 0;
-  row.weight = Math.round(((shapeTotal/1000) * row.sum * uw) * 100) / 100;
+  row.weight = (shapeTotal/1000) * row.sum * uw;
   return row;
 }
 
@@ -657,12 +675,12 @@ function renderTable(){
         <td>${fmt(row.sum)}</td>
         <td>${fmt(row.anchor)}</td>
         <td><input data-field="pieces" type="number" min="0" value="${row.pieces||0}"></td>
-        <td>${fmt(row.weight,1)}</td>
+        <td>${fmt((row.weight||0)/1000,4)}</td>
       `;
       tbody.appendChild(tr);
     });
   }
-  document.getElementById('total-weight').textContent = '총 중량: ' + fmt(totalWeight,2) + ' kg';
+  document.getElementById('total-weight').textContent = '총 중량: ' + fmt(totalWeight/1000,3) + ' Ton';
   restoreTableCursor(false);
 }
 
@@ -892,6 +910,7 @@ document.getElementById('btn-delzone').onclick = ()=>{
 
 /* ===================== 새 프로젝트 ===================== */
 document.getElementById('btn-new').onclick = ()=>{
+  if(window.pywebview && window.pywebview.api) window.pywebview.api.begin_new_project().catch(()=>{});
   document.getElementById('np-company').value='';
   document.getElementById('np-site').value='새 프로젝트';
   document.getElementById('np-date').value = new Date().toISOString().slice(0,10);
@@ -923,7 +942,8 @@ document.getElementById('np-save').onclick = ()=>{
 document.getElementById('mb-new').onclick = ()=> document.getElementById('btn-new').click();
 
 /* ===================== 열기 / 저장 ===================== */
-document.getElementById('btn-save').onclick = saveToFile;
+document.getElementById('btn-save').onclick = ()=>saveToFile(false);
+document.getElementById('btn-save-as').onclick = ()=>saveToFile(true);
 document.getElementById('btn-open').onclick = async ()=>{
   if(window.pywebview && window.pywebview.api){
     const result = await window.pywebview.api.open_project();
@@ -940,6 +960,19 @@ document.getElementById('file-input').addEventListener('change', function(e){
   if(e.target.files[0]) openFromFile(e.target.files[0]);
   e.target.value='';
 });
+document.getElementById('startup-new').onclick = ()=>{
+  document.getElementById('startup-modal').classList.add('hidden');
+  document.getElementById('btn-new').click();
+};
+document.getElementById('startup-open').onclick = ()=>{
+  document.getElementById('startup-modal').classList.add('hidden');
+  document.getElementById('btn-open').click();
+};
+document.getElementById('startup-last').onclick = ()=>{
+  if(!startupLastProject) return;
+  document.getElementById('startup-modal').classList.add('hidden');
+  applyLoadedProject(startupLastProject.state, startupLastProject.name + ' (이어하기)', startupLastProject.path);
+};
 
 /* ===================== 철근 형상 다이얼로그 ===================== */
 function computeShapeGeometry(preset, dims){
@@ -1363,7 +1396,7 @@ document.getElementById('btn-print').onclick = ()=>{
     return `<tr>
       <td>${idx+1}</td><td>${row.name||''}</td><td>${row.dia}</td><td>${row.grade}</td><td>${row.usage}</td>
       <td>${svg}</td><td>${fmt(row.shape?row.shape.total:0)}</td><td>${fmt(row.count)}</td><td>${fmt(row.spots)}</td>
-      <td>${fmt(row.sum)}</td><td>${fmt(row.anchor)}</td><td>${fmt(row.pieces)}</td><td>${fmt(row.weight,1)}</td>
+      <td>${fmt(row.sum)}</td><td>${fmt(row.anchor)}</td><td>${fmt(row.pieces)}</td><td>${fmt((row.weight||0)/1000,4)}</td>
     </tr>`;
   }).join('');
   const html = `
@@ -1374,10 +1407,10 @@ document.getElementById('btn-print').onclick = ()=>{
       <tr><td class="k">전 표</td><td>${v.name}</td><td class="k">작 성 일</td><td>${new Date().toISOString().slice(0,10)}</td></tr>
     </table>
     <table class="print-table">
-      <thead><tr><th>NO</th><th>명칭</th><th>지름</th><th>강종</th><th>용도</th><th>형상</th><th>총길이</th><th>개수</th><th>개소</th><th>합계</th><th>정착</th><th>본수</th><th>실중량</th></tr></thead>
+      <thead><tr><th>NO</th><th>명칭</th><th>지름</th><th>강종</th><th>용도</th><th>형상</th><th>총길이</th><th>개수</th><th>개소</th><th>합계</th><th>정착</th><th>본수</th><th>실중량(Ton)</th></tr></thead>
       <tbody>${rowsHtml}</tbody>
     </table>
-    <div id="print-total">합 계: ${fmt(total,2)} kg</div>
+    <div id="print-total">합 계: ${fmt(total/1000,3)} Ton</div>
   `;
   document.getElementById('print-area').innerHTML = html;
   document.getElementById('print-modal').classList.remove('hidden');
@@ -1504,12 +1537,19 @@ window.addEventListener('pywebviewready', async ()=>{
   if(window.pywebview && window.pywebview.api){
     try{
       const lastProject = await window.pywebview.api.load_last_project();
-      if(lastProject.ok){
-        applyLoadedProject(lastProject.state, lastProject.name + ' (자동 복원)', lastProject.path);
+      if(lastProject.ok && lastProject.launched){
+        applyLoadedProject(lastProject.state, lastProject.name, lastProject.path);
         return;
+      }
+      if(lastProject.ok){
+        startupLastProject = lastProject;
+        const lastButton = document.getElementById('startup-last');
+        lastButton.textContent = '↩ 마지막 작업 이어서: ' + lastProject.name;
+        lastButton.classList.remove('hidden');
       }
     }catch(e){}
     window.pywebview.api.update_state(JSON.stringify(state), false).catch(()=>{});
+    document.getElementById('startup-modal').classList.remove('hidden');
   }
 });
 </script>
