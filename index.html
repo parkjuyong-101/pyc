@@ -61,7 +61,7 @@
   table.rebar-table input, table.rebar-table select{width:100%;border:1px solid transparent;background:transparent;text-align:center;font-size:12.5px;padding:4px 2px;border-radius:3px;}
   table.rebar-table input:focus, table.rebar-table select:focus{border-color:var(--accent);background:#fff;outline:none;}
   table.rebar-table .shape-cell{cursor:pointer;color:var(--accent);min-width:190px;padding:4px 6px;}
-  table.rebar-table .shape-cell svg{vertical-align:middle;display:block;margin:0 auto;}
+  table.rebar-table .shape-cell svg{vertical-align:middle;display:block;margin:0 auto;width:190px;height:72px;max-width:100%;}
   table.rebar-table .shape-cell:hover{background:var(--accent-light);}
   #statusbar{display:flex;align-items:center;padding:8px 12px;border-top:1px solid var(--border);background:#f1f3f5;font-size:13px;flex-shrink:0;}
   #statusbar .total{margin-left:auto;font-weight:700;color:var(--accent);font-size:15px;}
@@ -616,7 +616,7 @@ function shapeMiniSVG(row){
   const preset = SHAPE_PRESETS.find(p=>p.id === (row.shape && row.shape.presetId));
   if(!preset) return '<span style="color:#9aa0a8;">(형상 없음)</span>';
   const dims = row.shape.dims || {};
-  return renderShapeSVG(preset, dims, 190, 60, true);
+  return renderShapeSVG(preset, dims, 190, 72, 'table');
 }
 
 function renderTable(){
@@ -904,9 +904,10 @@ function renderOverlapDiagram(preset, dims, showLabels){
 function renderShapeSVG(preset, dims, w, h, showLabels){
   if(preset.diagram==='aux15' || preset.diagram==='aux16') return renderOverlapDiagram(preset,dims,showLabels);
   const geo = computeShapeGeometry(preset, dims);
-  const pad = showLabels==='codes' ? 26 : Math.min(30, Math.max(8, Math.round(h*0.18)));
-  const fontSize = showLabels==='codes' ? 12 : (showLabels ? Math.max(9, Math.min(13, Math.round(h/13))) : Math.max(9, Math.round(h/9)));
-  const strokeW = showLabels==='codes' ? 2.2 : Math.max(3, Math.round(h/28));
+  const isTable = showLabels==='table';
+  const pad = showLabels==='codes' ? 26 : (isTable ? 20 : Math.min(30, Math.max(8, Math.round(h*0.18))));
+  const fontSize = showLabels==='codes' ? 12 : (isTable ? 8 : (showLabels ? Math.max(9, Math.min(13, Math.round(h/13))) : Math.max(9, Math.round(h/9))));
+  const strokeW = showLabels==='codes' ? 2.2 : (isTable ? 2.4 : Math.max(3, Math.round(h/28)));
   if(geo.isCircle){
     const cx=w/2, cy=h/2;
     const rr = Math.max(8, Math.min(w,h)/2 - pad);
@@ -950,7 +951,7 @@ function renderShapeSVG(preset, dims, w, h, showLabels){
   };
   const spts = geo.points.map(toSvg);
   const pointsAttr = spts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
-  const dots = showLabels==='codes' ? '' : spts.map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${strokeW*0.9}" fill="#1f2430"/>`).join('');
+  const dots = showLabels==='codes' ? '' : spts.map(p=>`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${strokeW*(isTable?0.65:0.9)}" fill="#1f2430"/>`).join('');
   let labelSvg = '';
   let angleLabelSvg = '';
   if(showLabels){
@@ -969,7 +970,7 @@ function renderShapeSVG(preset, dims, w, h, showLabels){
         if(normalY>0.15){ normalX=-normalX; normalY=-normalY; }
         if(Math.abs(normalY)<=0.15 && normalX<0){ normalX=-normalX; }
       }
-      const labelOffset = showLabels==='codes' ? 16 : 14;
+      const labelOffset = showLabels==='codes' ? 16 : (isTable ? 10 : 14);
       const textX = lx + normalX*labelOffset;
       const textY = ly + normalY*labelOffset + fontSize/3;
       const labelColor = showLabels==='codes' ? '#111827' : '#1f2937';
@@ -978,7 +979,7 @@ function renderShapeSVG(preset, dims, w, h, showLabels){
     }).join('');
     angleLabelSvg = (geo.angleLabels||[]).map(a=>{
       const [ax,ay] = toSvg(a.pos);
-      const arcRadius = showLabels==='codes' ? 10 : 22;
+      const arcRadius = showLabels==='codes' ? 10 : (isTable ? 8 : 22);
       const startRad = a.fromAngle*Math.PI/180;
       const endRad = a.toAngle*Math.PI/180;
       const startX = ax + arcRadius*Math.cos(startRad);
@@ -988,11 +989,13 @@ function renderShapeSVG(preset, dims, w, h, showLabels){
       const largeArc = Math.abs(a.val)>180 ? 1 : 0;
       const sweep = a.val<0 ? 1 : 0;
       const midRad = (a.fromAngle + a.val/2)*Math.PI/180;
-      const labelRadius = arcRadius + (showLabels==='codes' ? 7 : 16);
+      const labelRadius = arcRadius + (showLabels==='codes' ? 7 : (isTable ? 7 : 16));
       const labelX = ax + labelRadius*Math.cos(midRad);
       const labelY = ay - labelRadius*Math.sin(midRad);
       const angleValue = showLabels==='codes' ? a.key : `${a.key}=${fmt(a.val)}°`;
-      return `<path d="M ${startX.toFixed(1)} ${startY.toFixed(1)} A ${arcRadius} ${arcRadius} 0 ${largeArc} ${sweep} ${endX.toFixed(1)} ${endY.toFixed(1)}" fill="none" stroke="#dc2626" stroke-width="2"/><circle cx="${startX.toFixed(1)}" cy="${startY.toFixed(1)}" r="1.8" fill="#dc2626"/><circle cx="${endX.toFixed(1)}" cy="${endY.toFixed(1)}" r="1.8" fill="#dc2626"/><text x="${labelX.toFixed(1)}" y="${(labelY+fontSize/3).toFixed(1)}" font-size="${fontSize}" font-weight="700" text-anchor="middle" fill="#dc2626">${angleValue}</text>`;
+      const angleStroke = isTable ? 1.4 : 2;
+      const angleDot = isTable ? 1.1 : 1.8;
+      return `<path d="M ${startX.toFixed(1)} ${startY.toFixed(1)} A ${arcRadius} ${arcRadius} 0 ${largeArc} ${sweep} ${endX.toFixed(1)} ${endY.toFixed(1)}" fill="none" stroke="#dc2626" stroke-width="${angleStroke}"/><circle cx="${startX.toFixed(1)}" cy="${startY.toFixed(1)}" r="${angleDot}" fill="#dc2626"/><circle cx="${endX.toFixed(1)}" cy="${endY.toFixed(1)}" r="${angleDot}" fill="#dc2626"/><text x="${labelX.toFixed(1)}" y="${(labelY+fontSize/3).toFixed(1)}" font-size="${fontSize}" font-weight="700" text-anchor="middle" fill="#dc2626">${angleValue}</text>`;
     }).join('');
   }
   return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
