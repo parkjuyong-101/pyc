@@ -2,3 +2,13 @@ build/
 dist/
 *.spec
 __pycache__/
+.gradle/
+.android-tools.zip
+.gradle.zip
+.jdk.zip
+.build-tools/
+android-app/.gradle/
+android-app/build/
+android-app/app/build/
+android-release/*.apk
+android-release/*.aab
