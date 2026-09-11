@@ -1230,8 +1230,10 @@ function renderShapeSVG(preset, dims, w, h, showLabels){
         if(normalY>0.15){ normalX=-normalX; normalY=-normalY; }
         if(Math.abs(normalY)<=0.15 && normalX<0){ normalX=-normalX; }
       }
-      const staggerMul = isPrint ? (li%2===0 ? 1 : 1.9) : 1;
-      const labelOffset = (showLabels==='codes' ? 16 : (isTable ? 10 : (isPrint ? 22 : 14))) * staggerMul;
+      const staggerMul = isPrint ? (li%2===0 ? 1 : 1.25) : 1;
+      const rawOffset = (showLabels==='codes' ? 16 : (isTable ? 10 : (isPrint ? 22 : 14))) * staggerMul;
+      const offsetCap = isPrint ? Math.max(14, Math.max(drawnW,drawnH)*0.4) : Infinity;
+      const labelOffset = Math.min(rawOffset, offsetCap);
       const textX = lx + normalX*labelOffset;
       const textY = ly + normalY*labelOffset + fontSize/3;
       const labelColor = showLabels==='codes' ? '#111827' : '#1f2937';
