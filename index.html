@@ -60,6 +60,8 @@
   table.rebar-table tr.selected{background:var(--accent-light);}
   table.rebar-table td.grid-active{position:relative;outline:3px solid #2563eb;outline-offset:-3px;background:#eff6ff;z-index:2;}
   table.rebar-table td.grid-editing{outline-color:#f59e0b;background:#fffbeb;}
+  table.rebar-table td.grid-active.fillable::after{content:'';position:absolute;width:9px;height:9px;right:-5px;bottom:-5px;background:#2563eb;border:1.5px solid #fff;border-radius:1px;cursor:crosshair;z-index:6;}
+  table.rebar-table td.grid-fill-target{background:#dbeafe!important;outline:2px dashed #2563eb;outline-offset:-2px;}
   table.rebar-table input, table.rebar-table select{width:100%;border:1px solid transparent;background:transparent;text-align:center;font-size:12.5px;padding:4px 2px;border-radius:3px;}
   table.rebar-table input:focus, table.rebar-table select:focus{border-color:var(--accent);background:#fff;outline:none;}
   table.rebar-table .shape-cell{cursor:pointer;color:var(--accent);min-width:190px;padding:4px 6px;}
@@ -525,6 +527,7 @@ const SHAPE_LABEL_POSITIONS = {
 let state = null;
 let ui = { activeZoneId:null, activeFloor:null, activeMember:null, activeVoucherId:null, selectedRowId:null, currentFilePath:null, shapeTargetRowId:null, shapeSelectedPreset:null, shapeDims:{} };
 let tableCursor = { row:0, col:0, active:false };
+let lastUsedDia = 'D10';
 let tableEditor = null;
 let startupLastProject = null;
 
@@ -798,11 +801,12 @@ function setTableCursor(row, col, focusCell=true){
   col = Math.max(0, Math.min(col, rows[row].length-1));
   tableCursor = {row, col, active:true};
   document.querySelectorAll('#rebar-tbody td.grid-active, #rebar-tbody td.grid-editing').forEach(td=>{
-    td.classList.remove('grid-active','grid-editing');
+    td.classList.remove('grid-active','grid-editing','fillable');
     td.tabIndex = -1;
   });
   const td = rows[row][col];
   td.classList.add('grid-active');
+  if(td.querySelector('[data-field]')) td.classList.add('fillable');
   td.tabIndex = 0;
   const tr = td.closest('tr');
   ui.selectedRowId = tr.getAttribute('data-row-id');
@@ -850,7 +854,34 @@ document.getElementById('rebar-tbody').addEventListener('focusin', function(e){
   if(e.target===tableEditor) td.classList.add('grid-editing');
 });
 
+let fillDrag = null; // {field, value, colIndex, startRowIndex, endRowIndex}
+
+function isOnFillHandle(e){
+  const activeTd = document.querySelector('#rebar-tbody td.grid-active.fillable');
+  if(!activeTd) return null;
+  const r = activeTd.getBoundingClientRect();
+  const hotX = r.right, hotY = r.bottom;
+  if(Math.abs(e.clientX-hotX)<=7 && Math.abs(e.clientY-hotY)<=7) return activeTd;
+  return null;
+}
+
+function clearFillPreview(){
+  document.querySelectorAll('#rebar-tbody td.grid-fill-target').forEach(td=>td.classList.remove('grid-fill-target'));
+}
+
 document.getElementById('rebar-tbody').addEventListener('mousedown', function(e){
+  const handleTd = isOnFillHandle(e);
+  if(handleTd){
+    e.preventDefault();
+    const tr = handleTd.closest('tr');
+    const rowIdx = Array.from(this.rows).indexOf(tr);
+    const field = handleTd.querySelector('[data-field]').getAttribute('data-field');
+    const v = getActiveVoucher();
+    const row = v.rows[rowIdx];
+    fillDrag = { field, value: row[field], colIndex: handleTd.cellIndex, startRowIndex: rowIdx, endRowIndex: rowIdx };
+    handleTd.classList.add('grid-fill-target');
+    return;
+  }
   const editor = e.target.closest('input,select,button');
   if(!editor || editor===tableEditor) return;
   const td = editor.closest('td');
@@ -858,6 +889,44 @@ document.getElementById('rebar-tbody').addEventListener('mousedown', function(e)
   e.preventDefault();
   setTableCursor(Array.from(this.rows).indexOf(tr), td.cellIndex, true);
 }, true);
+
+document.addEventListener('mousemove', function(e){
+  if(!fillDrag) return;
+  const rows = tableCells();
+  let targetRow = fillDrag.startRowIndex;
+  for(let i=0;i<rows.length;i++){
+    const cell = rows[i][fillDrag.colIndex];
+    if(!cell) continue;
+    const r = cell.getBoundingClientRect();
+    if(e.clientY >= r.top && e.clientY <= r.bottom){ targetRow = i; break; }
+    if(e.clientY < r.top && i===0) targetRow = 0;
+    if(e.clientY > r.bottom) targetRow = i;
+  }
+  fillDrag.endRowIndex = targetRow;
+  clearFillPreview();
+  const lo = Math.min(fillDrag.startRowIndex, fillDrag.endRowIndex);
+  const hi = Math.max(fillDrag.startRowIndex, fillDrag.endRowIndex);
+  for(let i=lo;i<=hi;i++){
+    const cell = rows[i][fillDrag.colIndex];
+    if(cell) cell.classList.add('grid-fill-target');
+  }
+});
+
+document.addEventListener('mouseup', function(){
+  if(!fillDrag) return;
+  const lo = Math.min(fillDrag.startRowIndex, fillDrag.endRowIndex);
+  const hi = Math.max(fillDrag.startRowIndex, fillDrag.endRowIndex);
+  const v = getActiveVoucher();
+  if(v && hi>lo){
+    for(let i=lo;i<=hi;i++){
+      if(v.rows[i]) v.rows[i][fillDrag.field] = fillDrag.value;
+    }
+    if(fillDrag.field==='dia') lastUsedDia = fillDrag.value;
+    renderTable(); autosave();
+  }
+  clearFillPreview();
+  fillDrag = null;
+});
 
 document.getElementById('rebar-tbody').addEventListener('dblclick', function(e){
   const td = e.target.closest('td');
@@ -928,6 +997,7 @@ document.getElementById('rebar-tbody').addEventListener('change', function(e){
   } else {
     row[field] = el.value;
   }
+  if(field==='dia') lastUsedDia = el.value;
   renderTable();
   if(wasKeyboardEditing){
     tableEditor = null;
@@ -938,7 +1008,7 @@ document.getElementById('rebar-tbody').addEventListener('change', function(e){
 
 /* ===================== 철근 추가/삭제/정렬 ===================== */
 function newRow(){
-  return { id: uid(), name:'', dia:'D10', grade:'SD400', usage:'None',
+  return { id: uid(), name:'', dia:lastUsedDia, grade:'SD400', usage:'None',
            shape:{presetId:null, dims:{}, total:0}, count:1, spots:1, sum:1, anchor:'', pieces:0, weight:0 };
 }
 
