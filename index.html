@@ -1230,9 +1230,9 @@ function renderShapeSVG(preset, dims, w, h, showLabels){
         if(normalY>0.15){ normalX=-normalX; normalY=-normalY; }
         if(Math.abs(normalY)<=0.15 && normalX<0){ normalX=-normalX; }
       }
-      const staggerMul = isPrint ? (li%2===0 ? 1 : 1.25) : 1;
-      const rawOffset = (showLabels==='codes' ? 16 : (isTable ? 10 : (isPrint ? 22 : 14))) * staggerMul;
-      const offsetCap = isPrint ? Math.max(14, Math.max(drawnW,drawnH)*0.4) : Infinity;
+      const staggerMul = isPrint ? (li%2===0 ? 1 : 1.1) : 1;
+      const rawOffset = (showLabels==='codes' ? 16 : (isTable ? 10 : (isPrint ? 13 : 14))) * staggerMul;
+      const offsetCap = isPrint ? Math.max(10, Math.max(drawnW,drawnH)*0.28) : Infinity;
       const labelOffset = Math.min(rawOffset, offsetCap);
       const textX = lx + normalX*labelOffset;
       const textY = ly + normalY*labelOffset + fontSize/3;
@@ -1242,7 +1242,7 @@ function renderShapeSVG(preset, dims, w, h, showLabels){
     }).join('');
     angleLabelSvg = (geo.angleLabels||[]).map(a=>{
       const [ax,ay] = toSvg(a.pos);
-      const arcRadius = showLabels==='codes' ? 10 : (isTable ? 8 : (isPrint ? 27 : 22));
+      const arcRadius = showLabels==='codes' ? 10 : (isTable ? 8 : (isPrint ? 15 : 22));
       const startRad = a.fromAngle*Math.PI/180;
       const endRad = a.toAngle*Math.PI/180;
       const startX = ax + arcRadius*Math.cos(startRad);
@@ -1252,7 +1252,7 @@ function renderShapeSVG(preset, dims, w, h, showLabels){
       const largeArc = Math.abs(a.val)>180 ? 1 : 0;
       const sweep = a.val<0 ? 1 : 0;
       const midRad = (a.fromAngle + a.val/2)*Math.PI/180;
-      const labelRadius = arcRadius + (showLabels==='codes' ? 7 : (isTable ? 7 : (isPrint ? 22 : 16)));
+      const labelRadius = arcRadius + (showLabels==='codes' ? 7 : (isTable ? 7 : (isPrint ? 12 : 16)));
       const labelX = ax + labelRadius*Math.cos(midRad);
       const labelY = ay - labelRadius*Math.sin(midRad);
       const angleValue = showLabels==='codes' ? a.key : `${a.key}=${fmt(a.val)}°`;
