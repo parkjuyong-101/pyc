@@ -1215,7 +1215,7 @@ function renderShapeSVG(preset, dims, w, h, showLabels){
   let labelSvg = '';
   let angleLabelSvg = '';
   if(showLabels){
-    labelSvg = geo.labels.map(l=>{
+    labelSvg = geo.labels.map((l,li)=>{
       const [lx,ly] = toSvg(l.mid);
       const textValue = showLabels==='codes' ? l.key : fmt(l.val);
       const fixedPosition = SHAPE_LABEL_POSITIONS[preset.id] && SHAPE_LABEL_POSITIONS[preset.id][l.key];
@@ -1230,7 +1230,8 @@ function renderShapeSVG(preset, dims, w, h, showLabels){
         if(normalY>0.15){ normalX=-normalX; normalY=-normalY; }
         if(Math.abs(normalY)<=0.15 && normalX<0){ normalX=-normalX; }
       }
-      const labelOffset = showLabels==='codes' ? 16 : (isTable ? 10 : (isPrint ? 22 : 14));
+      const staggerMul = isPrint ? (li%2===0 ? 1 : 1.9) : 1;
+      const labelOffset = (showLabels==='codes' ? 16 : (isTable ? 10 : (isPrint ? 22 : 14))) * staggerMul;
       const textX = lx + normalX*labelOffset;
       const textY = ly + normalY*labelOffset + fontSize/3;
       const labelColor = showLabels==='codes' ? '#111827' : '#1f2937';
