@@ -1108,7 +1108,7 @@ function computeShapeGeometry(preset, dims){
       const ang = Number(dims['angle'+k])||0;
       const rad = ang*Math.PI/180;
       const nx = fx+len*Math.cos(rad), ny = fy+len*Math.sin(rad);
-      flabels.push({mid:[(fx+nx)/2,(fy+ny)/2], val:len, key:k, angle:ang});
+      if(len!==0){ flabels.push({mid:[(fx+nx)/2,(fy+ny)/2], val:len, key:k, angle:ang}); }
       fangleLabels.push({pos:[fx,fy], val:ang, key:['X','Y','Z'][i]||''});
       fpts.push([nx,ny]);
       fx=nx; fy=ny; ftotal+=len;
@@ -1122,7 +1122,7 @@ function computeShapeGeometry(preset, dims){
     const angDeg = seg.angleField!=null ? previousAngle + bendValue : seg.angle;
     const rad = angDeg*Math.PI/180;
     const nx = x+len*Math.cos(rad), ny = y+len*Math.sin(rad);
-    labels.push({mid:[(x+nx)/2,(y+ny)/2], val:len, key:seg.key, angle:angDeg});
+    if(len!==0){ labels.push({mid:[(x+nx)/2,(y+ny)/2], val:len, key:seg.key, angle:angDeg}); }
     if(seg.angleField!=null){
       angleLabels.push({pos:[x,y], val:bendValue, key:seg.angleField.replace('angle',''), fromAngle:previousAngle, toAngle:angDeg});
     }
@@ -1235,7 +1235,7 @@ function renderShapeSVG(preset, dims, w, h, showLabels){
       const textY = ly + normalY*labelOffset + fontSize/3;
       const labelColor = showLabels==='codes' ? '#111827' : '#1f2937';
       const labelWeight = showLabels==='codes' ? '500' : '700';
-      return `<text x="${textX.toFixed(1)}" y="${textY.toFixed(1)}" font-size="${fontSize}" font-weight="${labelWeight}" text-anchor="middle" fill="${labelColor}">${textValue}</text>`;
+      return `<text x="${textX.toFixed(1)}" y="${textY.toFixed(1)}" font-size="${fontSize}" font-weight="${labelWeight}" text-anchor="middle" fill="${labelColor}" style="paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round;">${textValue}</text>`;
     }).join('');
     angleLabelSvg = (geo.angleLabels||[]).map(a=>{
       const [ax,ay] = toSvg(a.pos);
@@ -1255,7 +1255,7 @@ function renderShapeSVG(preset, dims, w, h, showLabels){
       const angleValue = showLabels==='codes' ? a.key : `${a.key}=${fmt(a.val)}°`;
       const angleStroke = isTable ? 1.4 : (isPrint ? 1.7 : 2);
       const angleDot = isTable ? 1.1 : (isPrint ? 1.3 : 1.8);
-      return `<path d="M ${startX.toFixed(1)} ${startY.toFixed(1)} A ${arcRadius} ${arcRadius} 0 ${largeArc} ${sweep} ${endX.toFixed(1)} ${endY.toFixed(1)}" fill="none" stroke="#dc2626" stroke-width="${angleStroke}"/><circle cx="${startX.toFixed(1)}" cy="${startY.toFixed(1)}" r="${angleDot}" fill="#dc2626"/><circle cx="${endX.toFixed(1)}" cy="${endY.toFixed(1)}" r="${angleDot}" fill="#dc2626"/><text x="${labelX.toFixed(1)}" y="${(labelY+fontSize/3).toFixed(1)}" font-size="${fontSize}" font-weight="700" text-anchor="middle" fill="#dc2626">${angleValue}</text>`;
+      return `<path d="M ${startX.toFixed(1)} ${startY.toFixed(1)} A ${arcRadius} ${arcRadius} 0 ${largeArc} ${sweep} ${endX.toFixed(1)} ${endY.toFixed(1)}" fill="none" stroke="#dc2626" stroke-width="${angleStroke}"/><circle cx="${startX.toFixed(1)}" cy="${startY.toFixed(1)}" r="${angleDot}" fill="#dc2626"/><circle cx="${endX.toFixed(1)}" cy="${endY.toFixed(1)}" r="${angleDot}" fill="#dc2626"/><text x="${labelX.toFixed(1)}" y="${(labelY+fontSize/3).toFixed(1)}" font-size="${fontSize}" font-weight="700" text-anchor="middle" fill="#dc2626" style="paint-order:stroke;stroke:#fff;stroke-width:3px;stroke-linejoin:round;">${angleValue}</text>`;
     }).join('');
   }
   return `<svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
